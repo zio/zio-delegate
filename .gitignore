@@ -1,15 +1,17 @@
-*.class
-*.log
+project/zecret
+project/travis-deploy-key
+project/secrets.tar.xz
+target
+test-output/
+.sbtopts
+project/.sbt
+test-output/
+.bloop
+.metals
+.idea
 
-# sbt specific
-dist/*
-target/
-lib_managed/
-src_managed/
-project/boot/
-project/plugins/project/
-
-# Scala-IDE specific
-.scala_dependencies
-
-.idea*
+# if you are here to add your IDE's files please read this instead:
+# https://stackoverflow.com/questions/7335420/global-git-ignore#22885996
+website/node_modules
+website/build
+website/i18n/en.json
