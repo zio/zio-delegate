@@ -1,0 +1,127 @@
+{
+    "version" : "1.1.2",
+    "project" : {
+        "name" : "root-test",
+        "directory" : "/var/home/mschuwalow/Projects/scala-macro-aop",
+        "sources" : [
+            "/var/home/mschuwalow/Projects/scala-macro-aop/src/test/scala-2.12",
+            "/var/home/mschuwalow/Projects/scala-macro-aop/src/test/scala",
+            "/var/home/mschuwalow/Projects/scala-macro-aop/src/test/java",
+            "/var/home/mschuwalow/Projects/scala-macro-aop/target/scala-2.12/src_managed/test"
+        ],
+        "dependencies" : [
+            "root",
+            "core-test",
+            "coreTests-test"
+        ],
+        "classpath" : [
+            "/var/home/mschuwalow/Projects/scala-macro-aop/.bloop/root/scala-2.12/classes",
+            "/home/mschuwalow/.ivy2/cache/org.scala-lang/scala-library/jars/scala-library-2.12.8.jar"
+        ],
+        "out" : "/var/home/mschuwalow/Projects/scala-macro-aop/.bloop/root",
+        "classesDir" : "/var/home/mschuwalow/Projects/scala-macro-aop/.bloop/root/scala-2.12/test-classes",
+        "resources" : [
+            "/var/home/mschuwalow/Projects/scala-macro-aop/src/test/resources",
+            "/var/home/mschuwalow/Projects/scala-macro-aop/target/scala-2.12/resource_managed/test"
+        ],
+        "scala" : {
+            "organization" : "org.scala-lang",
+            "name" : "scala-compiler",
+            "version" : "2.12.8",
+            "options" : [
+                "-P:semanticdb:synthetics:on",
+                "-P:semanticdb:failures:warning",
+                "-P:semanticdb:sourceroot:/var/home/mschuwalow/Projects/scala-macro-aop",
+                "-Yrangepos",
+                "-Xplugin-require:semanticdb",
+                "-Xplugin:/home/mschuwalow/.ivy2/cache/org.scalameta/semanticdb-scalac_2.12.8/jars/semanticdb-scalac_2.12.8-4.2.0.jar"
+            ],
+            "jars" : [
+                "/home/mschuwalow/.ivy2/cache/org.scala-lang/scala-compiler/jars/scala-compiler-2.12.8.jar",
+                "/home/mschuwalow/.ivy2/cache/org.scala-lang/scala-library/jars/scala-library-2.12.8.jar",
+                "/home/mschuwalow/.ivy2/cache/org.scala-lang/scala-reflect/jars/scala-reflect-2.12.8.jar",
+                "/home/mschuwalow/.ivy2/cache/org.scala-lang.modules/scala-xml_2.12/bundles/scala-xml_2.12-1.0.6.jar",
+                "/home/mschuwalow/.ivy2/cache/jline/jline/jars/jline-2.14.6.jar"
+            ],
+            "setup" : {
+                "order" : "mixed",
+                "addLibraryToBootClasspath" : true,
+                "addCompilerToClasspath" : false,
+                "addExtraJarsToClasspath" : false,
+                "manageBootClasspath" : true,
+                "filterLibraryFromClasspath" : true
+            }
+        },
+        "java" : {
+            "options" : [
+            ]
+        },
+        "test" : {
+            "frameworks" : [
+                {
+                    "names" : [
+                        "org.scalacheck.ScalaCheckFramework"
+                    ]
+                },
+                {
+                    "names" : [
+                        "org.specs2.runner.Specs2Framework",
+                        "org.specs2.runner.SpecsFramework"
+                    ]
+                },
+                {
+                    "names" : [
+                        "org.specs.runner.SpecsFramework"
+                    ]
+                },
+                {
+                    "names" : [
+                        "org.scalatest.tools.Framework",
+                        "org.scalatest.tools.ScalaTestFramework"
+                    ]
+                },
+                {
+                    "names" : [
+                        "com.novocode.junit.JUnitFramework"
+                    ]
+                }
+            ],
+            "options" : {
+                "excludes" : [
+                ],
+                "arguments" : [
+                ]
+            }
+        },
+        "platform" : {
+            "name" : "jvm",
+            "config" : {
+                "home" : "/usr/lib/jvm/java-11-openjdk-11.0.4.11-0.fc30.x86_64",
+                "options" : [
+                ]
+            },
+            "mainClass" : [
+            ]
+        },
+        "resolution" : {
+            "modules" : [
+                {
+                    "organization" : "org.scala-lang",
+                    "name" : "scala-library",
+                    "version" : "2.12.8",
+                    "artifacts" : [
+                        {
+                            "name" : "scala-library",
+                            "path" : "/home/mschuwalow/.ivy2/cache/org.scala-lang/scala-library/jars/scala-library-2.12.8.jar"
+                        },
+                        {
+                            "name" : "scala-library",
+                            "classifier" : "sources",
+                            "path" : "/home/mschuwalow/.ivy2/cache/org.scala-lang/scala-library/srcs/scala-library-2.12.8-sources.jar"
+                        }
+                    ]
+                }
+            ]
+        }
+    }
+}
