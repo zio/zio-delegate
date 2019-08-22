@@ -8,7 +8,7 @@ class Macros(val c: Context) {
 
   def delegateImpl(annottees: c.Expr[Any]*): c.Tree = {
 
-    case class Arguments(verbose: Boolean, forwardObjectMethods: Boolean)
+    case class Arguments(verbose: Boolean, forwardObjectMethods: Boolean, generateTraits: Boolean)
 
     val args: Arguments = c.prefix.tree match {
       case Apply(_, args) =>
@@ -18,7 +18,10 @@ class Macros(val c: Context) {
         val forwardObjectMethods = args.collectFirst { case q"forwardObjectMethods = $cfg" =>
           c.eval(c.Expr[Boolean](cfg))
         }.getOrElse(false)
-        Arguments(verbose, forwardObjectMethods)
+        val generateTraits = args.collectFirst { case q"generateTraits = $cfg" =>
+          c.eval(c.Expr[Boolean](cfg))
+        }.getOrElse(true)
+        Arguments(verbose, forwardObjectMethods, generateTraits)
       case other => c.abort(c.enclosingPosition, "not possible - macro invoked on type that does not have @delegate: " + showRaw(other))
     }
 
@@ -29,13 +32,14 @@ class Macros(val c: Context) {
           "java.lang.Object.hashCode",
           "java.lang.Object.finalize",
           "java.lang.Object.equals",
-          "java.lang.Object.toString"
+          "java.lang.Object.toString",
+          "scala.Any.getClass"
         )
       } else Set[String]()
       blackListed.contains(m.fullName)
     }
 
-    def modifiedClass(classDecl: ClassDef, a: TermName, extensions: Set[(TermName, MethodSymbol)]): c.Tree = {
+    def modifiedClass(classDecl: ClassDef, delegateTo: ValDef): c.Tree = {
       val (className, fields, bases, body) = try {
         val q"class $className(..$fields) extends ..$bases { ..$body }" = classDecl
         (className, fields, bases, body)
@@ -43,23 +47,24 @@ class Macros(val c: Context) {
         case _: MatchError => c.abort(c.enclosingPosition, "Annotation is only supported on classes")
       }
       val existingMethods = body
-        .flatMap(
-          tree =>
-            tree match {
-              case a @ DefDef(_, n, _, _, _, _) => Some(n)
-              case a @ ValDef(_, n, _, _)       => Some(n)
-              case _                            => None
-            }
-        )
-        .toSet
+      .flatMap(
+        tree =>
+          tree match {
+            case a @ DefDef(_, n, _, _, _, _) => Some(n)
+            case a @ ValDef(_, n, _, _)       => Some(n)
+            case _                            => None
+          }
+      )
+      .toSet
 
-      val toAdd = extensions.filterNot {
-        case (n, _) =>
+      val (toName, toType) = typeCheckVal(delegateTo)
+      val additionalTraits = if (args.generateTraits) getTraits(toType) -- bases.flatMap(b => getTraits(c.typecheck(b, c.TYPEmode).tpe)).toSet
+                             else Set.empty
+      val resultType = parseTypeString((bases.map(_.toString()) ++ additionalTraits.map(_.fullName).toList).mkString(" with "))
+      val extensions = overlappingMethods(toType, resultType)
+        .filterNot { case (n, _) =>
           existingMethods.contains(n)
-      }
-
-      val ms = toAdd.map {
-        case (name, m) =>
+        } map { case (name, m) =>
           val rType = m.returnType
 
           val mods = if (!m.isAbstract) Modifiers(Flag.OVERRIDE)
@@ -67,25 +72,44 @@ class Macros(val c: Context) {
 
           if (m.isVal) {
             q"""
-          $mods val $name: $rType = $a.$name
+          $mods val $name: $rType = $toName.$name
           """
           } else {
             val typeParams = m.typeParams.map(internal.typeDef(_))
             val paramLists = m.paramLists.map(_.map(internal.valDef(_)))
             q"""
           $mods def $name[..${typeParams}](...$paramLists): $rType = {
-            $a.${name}(...${paramLists.map(_.map(_.name))})
+            $toName.${name}(...${paramLists.map(_.map(_.name))})
           }
           """
           }
       }
-      q"class $className(..$fields) extends ..$bases { ..${body ++ ms} }"
+      val resultTypeName = TypeName(c.freshName)
+      q"""
+      ${c.parse(s"abstract class $resultTypeName extends $resultType")}
+      class $className(..$fields) extends $resultTypeName { ..${body ++ extensions} }
+      """
     }
 
-    def delegationCandidates(valDecl: ValDef): (TermName, Set[(TermName, MethodSymbol)]) = {
-      val (tpt, tname, expr) = try {
+    def getTraits(t: Type): Set[ClassSymbol] = {
+      def loop(stack: List[ClassSymbol], traits: Vector[ClassSymbol] = Vector()): Vector[ClassSymbol] = stack match {
+        case x :: xs => {
+          if (x.isTrait) {
+            loop(xs, traits :+ x)
+          }
+          else {
+            loop(xs, traits)
+          }
+        }
+        case Nil => traits
+      }
+      loop(t.baseClasses.map(_.asClass)).toSet
+    }
+
+    def typeCheckVal(valDecl: ValDef): (TermName, Type) = {
+      val (tname, tpt) = try {
         val q"$mods val $tname: $tpt = $expr" = valDecl
-        (tpt, tname, expr)
+        (tname, tpt)
       } catch {
         case _: MatchError => c.abort(c.enclosingPosition, "Only val members are supported.")
       }
@@ -95,15 +119,26 @@ class Macros(val c: Context) {
       } catch {
         case _: TypecheckException => c.abort(c.enclosingPosition, s"Type ${tpt.toString()} needs a stable reference.")
       }
+      (tname, tpe)
+    }
 
-      val methods =
-        tpe.members.map(_.asMethod).filter(m => !m.isConstructor && !m.isFinal && m.isPublic && !isBlackListed(m))
-      (tname, methods.map(m => (m.name, m)).toSet)
+    def parseTypeString(str: String): Type = {
+      try {
+        c.typecheck(c.parse(s"null.asInstanceOf[$str]"), c.TYPEmode).tpe
+      } catch {
+        case _: TypecheckException => c.abort(c.enclosingPosition, s"Failed typechecking calculated type $str")
+      }
+    }
+
+    def overlappingMethods(from: Type, to: Type): Map[TermName, MethodSymbol] = {
+      to.baseClasses.map(_.asClass.selfType).filter(from <:< _).flatMap { s =>
+        s.members.flatMap(m => to.member(m.name).alternatives.map(_.asMethod)).filter(m => !m.isConstructor && !m.isFinal && m.isPublic && !isBlackListed(m))
+      }.map(m => (m.name -> m)).toMap
     }
 
     annottees.map(_.tree) match {
       case (valDecl: ValDef) :: (classDecl: ClassDef) :: Nil =>
-        val modified = delegationCandidates(valDecl) match { case (a, m) => modifiedClass(classDecl, a, m) }
+        val modified = modifiedClass(classDecl, valDecl)
         if (args.verbose) showInfo(modified.toString())
         modified
       case _ => c.abort(c.enclosingPosition, "Invalid annottee")

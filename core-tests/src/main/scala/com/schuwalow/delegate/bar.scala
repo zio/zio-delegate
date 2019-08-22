@@ -1,6 +1,6 @@
 package com.schuwalow.delegate
 
-object foo {
+object bar {
 
   trait C { self: B =>
     def bar1(): Int = 1
