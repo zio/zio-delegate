@@ -1,21 +1,38 @@
 package com.schuwalow.delegate
 
 import scala.reflect.macros.blackbox.Context
+import scala.reflect.macros.TypecheckException
 
 class Macros(val c: Context) {
   import c.universe._
 
   def delegateImpl(annottees: c.Expr[Any]*): c.Tree = {
 
-    case class Arguments(verbose: Boolean)
+    case class Arguments(verbose: Boolean, forwardObjectMethods: Boolean)
 
     val args: Arguments = c.prefix.tree match {
       case Apply(_, args) =>
         val verbose: Boolean = args.collectFirst { case q"verbose = $cfg" =>
           c.eval(c.Expr[Boolean](cfg))
         }.getOrElse(false)
-        Arguments(verbose)
+        val forwardObjectMethods = args.collectFirst { case q"forwardObjectMethods = $cfg" =>
+          c.eval(c.Expr[Boolean](cfg))
+        }.getOrElse(false)
+        Arguments(verbose, forwardObjectMethods)
       case other => c.abort(c.enclosingPosition, "not possible - macro invoked on type that does not have @delegate: " + showRaw(other))
+    }
+
+    def isBlackListed(m: MethodSymbol) = {
+      val blackListed = if (!args.forwardObjectMethods) {
+        Set(
+          "java.lang.Object.clone",
+          "java.lang.Object.hashCode",
+          "java.lang.Object.finalize",
+          "java.lang.Object.equals",
+          "java.lang.Object.toString"
+        )
+      } else Set[String]()
+      blackListed.contains(m.fullName)
     }
 
     def modifiedClass(classDecl: ClassDef, a: TermName, extensions: Set[(TermName, MethodSymbol)]): c.Tree = {
@@ -45,15 +62,18 @@ class Macros(val c: Context) {
         case (name, m) =>
           val rType = m.returnType
 
+          val mods = if (!m.isAbstract) Modifiers(Flag.OVERRIDE)
+                     else Modifiers()
+
           if (m.isVal) {
             q"""
-          override val $name: $rType = $a.$name
+          $mods val $name: $rType = $a.$name
           """
           } else {
             val typeParams = m.typeParams.map(internal.typeDef(_))
             val paramLists = m.paramLists.map(_.map(internal.valDef(_)))
             q"""
-          override def $name[..${typeParams}](...$paramLists): $rType = {
+          $mods def $name[..${typeParams}](...$paramLists): $rType = {
             $a.${name}(...${paramLists.map(_.map(_.name))})
           }
           """
@@ -69,8 +89,13 @@ class Macros(val c: Context) {
       } catch {
         case _: MatchError => c.abort(c.enclosingPosition, "Only val members are supported.")
       }
-      val tree = tpt.duplicate
-      val tpe  = c.typecheck(q"${tree}", c.TYPEmode).tpe
+
+      val tpe = try {
+        c.typecheck(q"${tpt.duplicate}", c.TYPEmode).tpe
+      } catch {
+        case _: TypecheckException => c.abort(c.enclosingPosition, s"Type ${tpt.toString()} needs a stable reference.")
+      }
+
       val methods =
         tpe.members.map(_.asMethod).filter(m => !m.isConstructor && !m.isFinal && m.isPublic && !isBlackListed(m))
       (tname, methods.map(m => (m.name, m)).toSet)
@@ -83,15 +108,6 @@ class Macros(val c: Context) {
         modified
       case _ => c.abort(c.enclosingPosition, "Invalid annottee")
     }
-  }
-
-  def isBlackListed(m: MethodSymbol) = m.fullName match {
-    case s if s == "java.lang.Object.clone"    => true
-    case s if s == "java.lang.Object.hashCode" => true
-    case s if s == "java.lang.Object.finalize" => true
-    case s if s == "java.lang.Object.equals"   => true
-    case s if s == "java.lang.Object.toString" => true
-    case _                                     => false
   }
 
   def showInfo(s: String) =

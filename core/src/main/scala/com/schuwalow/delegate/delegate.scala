@@ -5,6 +5,6 @@ import scala.annotation.compileTimeOnly
 import scala.language.experimental.macros
 
 @compileTimeOnly("delegate annotation should have been removed.")
-class delegate(verbose: Boolean = true) extends StaticAnnotation {
+class delegate(verbose: Boolean = false, forwardObjectMethods: Boolean = false) extends StaticAnnotation {
   def macroTransform(annottees: Any*): Any = macro Macros.delegateImpl
 }

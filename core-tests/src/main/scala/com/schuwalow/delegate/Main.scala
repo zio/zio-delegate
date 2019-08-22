@@ -2,11 +2,11 @@ package com.schuwalow.delegate
 
 import foo._
 
-object Main extends App {
+object Main extends _root_.scala.App {
 
   val a = new A[Int] { def foo[A](a: A) = a; val a = 1 }
-  class Test(@delegate a1: A[Int], @delegate foo: B) extends A[Int] with B {
-    override def b2: Int = 0
+  class Test(@delegate a1: A[Int], @delegate foo: B) extends A[Int] with B with C {
+    override def b2: Int = 2
     override val a = 1
   }
 
