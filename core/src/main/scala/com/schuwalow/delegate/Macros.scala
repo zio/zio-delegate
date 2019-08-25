@@ -131,8 +131,16 @@ class Macros(val c: Context) {
     }
 
     def overlappingMethods(from: Type, to: Type): Map[TermName, MethodSymbol] = {
+      val enclosing = c.enclosingClass match {
+        case clazz if clazz.isEmpty => c.enclosingPackage.symbol.fullName
+        case clazz => clazz.symbol.fullName
+      }
+      def isVisible(m: MethodSymbol) = {
+        enclosing.startsWith(m.privateWithin.fullName)
+      }
+
       to.baseClasses.map(_.asClass.selfType).filter(from <:< _).flatMap { s =>
-        s.members.flatMap(m => to.member(m.name).alternatives.map(_.asMethod)).filter(m => !m.isConstructor && !m.isFinal && m.isPublic && !isBlackListed(m))
+        s.members.flatMap(m => to.member(m.name).alternatives.map(_.asMethod)).filter(m => !m.isConstructor && !m.isFinal && (m.isPublic || isVisible(m)) && !isBlackListed(m))
       }.map(m => (m.name -> m)).toMap
     }
 

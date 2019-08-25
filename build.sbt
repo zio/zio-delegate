@@ -33,6 +33,9 @@ lazy val core = project
   .in(file("core"))
   .settings(stdSettings("delegate-macro"))
   .settings(
+    scalacOptions --= Seq("-deprecation", "-Xfatal-warnings")
+  )
+  .settings(
     libraryDependencies ++= Seq(
       "dev.zio" %% "zio" % ZioVersion,
       "org.scala-lang" % "scala-reflect" % scalaVersion.value % "provided",
