@@ -1,45 +1,63 @@
-scala-macro-aop
-===============
+# Delegate
+This package defines an annotation and a typeclass that simplify working with mixins and proxies in scala.
 
-delegate / proxy / decorator
-----------------------------
+## 1. @delegate annotation
+This annotation can only be used on a  constructur parameter in a class definition.
+This will do a number of things to the resulting class definitions:
 
-The `@delegate` macro annotation can be applied to class parameters. The macro will generate missing methods which
-delegate calls to the annotated value.
+* The class will additionally extend any traits extended by the annotated member
+```scala
+import com.schuwalow.delegate._
 
-Currently the implementation is at a POC stage, doesn't support overloading, method type parameters or multiple
-parameter lists.
-
-For example:
-
-````scala
 trait Foo {
-  def method1(): String
-  def method2(p1: String): Long
-  def method3(p1: String): Int
-  def method4(p1: String, p2: Long): String
+  def foo: Int = 4
+}
+object FooImpl extends Foo
+
+class Bar(@delegate f: Foo)
+val b: Foo = new Bar(FooImpl)
+```
+
+* Any methods on the resulting type of the defined class that are also defined on the annotated member will be forwarded to the member unless a definition exists in the body of the class.
+```scala
+import com.schuwalow.delegate._
+
+trait Foo {
+  def foo: Int
+}
+abstract class Foo1 extends Foo {
+  def foo = 4
+  def foo1: Int
 }
 
-class FooImpl extends Foo {
-  def method1() = "m1"
-  def method2(p1: String) = 42L
-  def method3(p1: String) = p1.length()
-  def method4(p1: String, p2: Long) = s"ok $p1 $p2"
+class Bar(@delegate f: Foo)
+println(new Bar(new Foo {}).foo) // 4
+
+class Bar1(@delegate f: Foo) {
+  def foo = 3
 }
+println(new Bar1(new Foo {}).foo) // 3
 
-class FooWrapper(@delegate wrapped: Foo) extends Foo {
-  def method2(p1: String) = 41L
-}
-````
+// classes have to be explicitly extended. Forwarders will still
+// automatically generated though.
+class Bar2(@delegate f: Foo1) exends Foo1
+println(new Bar1(new Foo1 { def foo1 = 3 }).foo1) // 3
+```
 
-This will compile, even though there's no direct definition of `method1`, `method3` or `method4` in `FooWrapper`.
-That's because of the `@delegate` macro annotation, which will generate the missing methods (`method2` is already
-defined). The generated code will be, for example:
-
-````scala
-def method4(p1: String, p2: Long) = wrapped.method4(p2, p3)
-````
-
-To see the macro in action, execute `sbt run`.
-
-See also the blog: [Automatic generation of delegate methods with Macro Annotations](http://www.warski.org/blog/2013/09/automatic-generation-of-delegate-methods-with-macro-annotations/)
+* The behavior of the annotation can be customized with three options
+  ```scala
+  class delegate(verbose: Boolean = false, forwardObjectMethods: Boolean = false, generateTraits: Boolean = true)
+  ```
+  - verbose: The generated class will be reported during compilation. This is very useful for debugging behavior of the annotation or getting a feel for the generated code.
+  - forwardObjectMethods: controls whether methods defined on Object and similiar classes should be forwarded. The list of methods affected by this is currently:
+  ```scala
+  Set(
+    "java.lang.Object.clone",
+    "java.lang.Object.hashCode",
+    "java.lang.Object.finalize",
+    "java.lang.Object.equals",
+    "java.lang.Object.toString",
+    "scala.Any.getClass"
+  )
+  ```
+  - generateTraits: Whether the class should be adopted to automatically any traits defined on the automated member. If set to false only methods of traits / classes that are explicitly extended will be forwarded.
