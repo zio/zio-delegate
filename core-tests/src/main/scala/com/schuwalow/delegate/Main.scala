@@ -1,53 +1,37 @@
 package com.schuwalow.delegate
 
-import zio.blocking.Blocking
-
 import zio._
-import zio.clock.Clock
 import zio.blocking.Blocking
+import zio.clock.Clock
 
-trait Env extends clock.Clock.Live with console.Console.Live with scheduler.Scheduler
+trait Sys extends Serializable {
+  def sys: Sys.Service[Any]
+}
+object Sys {
+  trait Service[R] extends Serializable
 
-trait Foo {
-  def a: Int = 0
+  trait Live extends Sys { self: Clock with Blocking =>
+    def sys = new Service[Any] {}
+  }
+
+  def withSys[A <: Clock with Blocking](a: A)(implicit ev: A Mix Sys): A with Sys = {
+    class SysInstance(@delegate a1: Clock with Blocking) extends Live
+    ev.mix(a, new SysInstance(a))
+  }
 }
 
-trait Foo4 extends Foo {
-  override def a: Int = 4
-}
-
-trait Foo2 extends Foo {
-  abstract override def a: Int = 3
-}
-abstract class Foo3 extends Foo {
-  override def a: Int = 1
-  def c: Int          = 3
-}
-final class FFoo extends Foo
-
-trait Bar {
-  protected[delegate] def bar = 4
-}
-abstract class C1 extends Clock.Live
-
-trait Baz {self: Bar => }
 
 object Main extends _root_.scala.App {
 
-  println(new Foo3 with Foo4 {}.a)
-
-  class WithRandom(@delegate(verbose = true) old: Foo with Foo2 with Foo3 with Blocking with Bar) extends C1 {
-    override def a = 2
+  class Foo {
+    def foo: Int = 2
   }
-
-  println(new WithRandom(new Foo3 with Foo with Foo2 with Blocking.Live with Bar {
-    override def a   = 4
-    override def bar = 2
-  }).bar)
-
-  def withBaz[A <: Bar](a: A)(implicit ev: A Mix Baz): A with Baz = {
-    class BazImpl(@delegate b: Bar) extends Baz
-    ev.mix(a, new BazImpl(a))
+  trait Bar {
+    def bar: Int
   }
-  println(withBaz[Bar](new Bar {}).bar)
+  def withBar[A](a: A)(implicit ev: Mix[A, Bar]): A with Bar = {
+    ev.mix(a, new Bar { def bar = 2 })
+  }
+  println(withBar[Foo](new Foo()).bar) // 2
+
 }
