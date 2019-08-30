@@ -113,4 +113,4 @@ object Sys {
 }
 ```
 ## Remarks
-This is heavily inspired by ... and ... . Make sure to check out the projects!
+This is heavily inspired by [adamw/scala-macro-aop](https://github.com/adamw/scala-macro-aop) and [b-studios/MixinComposition](https://github.com/b-studios/MixinComposition) . Make sure to check out the projects!

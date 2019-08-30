@@ -5,7 +5,7 @@ import explicitdeps.ExplicitDepsPlugin.autoImport._
 import sbtcrossproject.CrossPlugin.autoImport.CrossType
 
 object BuildHelper {
-  val testDeps        = Seq("org.scalacheck"  %% "scalacheck"   % "1.14.0" % "test")
+  val testDeps        = Seq("org.scalatest"  %% "scalatest"   % "3.0.4" % "test")
   val compileOnlyDeps = Nil
   val compilerPlugins = Seq(
     compilerPlugin("org.spire-math"   %% "kind-projector"     % "0.9.4"),

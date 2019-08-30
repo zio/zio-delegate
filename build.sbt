@@ -1,6 +1,4 @@
 import BuildHelper._
-val ZioVersion        = "1.0.0-RC11-1"
-val ScmUrl = "https://github.com/mschuwalow/scala-macro-aop"
 
 name := "delegate"
 
@@ -16,9 +14,12 @@ inThisBuild(
       )
     ),
     scmInfo := Some(
-      ScmInfo(url(ScmUrl), "scm:git:git@github.com:mschuwalow/scala-macro-aop.git")
+      ScmInfo(
+        url("https://github.com/mschuwalow/scala-macro-aop"),
+        "scm:git:git@github.com:mschuwalow/scala-macro-aop.git"
+      )
     ),
-    licenses := Seq("MIT" -> url(s"${ScmUrl}/blob/v${version.value}/LICENSE")),
+    licenses := Seq("Apache 2.0" -> url(s"${scmInfo.value.map(_.browseUrl).get}/blob/v${version.value}/LICENSE")),
   )
 )
 
@@ -31,30 +32,18 @@ lazy val root = project
 
 lazy val core = project
   .in(file("core"))
-  .settings(stdSettings("delegate-macro"))
+  .settings(stdSettings("delegate-core"))
   .settings(
     scalacOptions --= Seq("-deprecation", "-Xfatal-warnings")
   )
   .settings(
     libraryDependencies ++= Seq(
-      "dev.zio" %% "zio" % ZioVersion,
       "org.scala-lang" % "scala-reflect" % scalaVersion.value % "provided",
       "org.scala-lang" % "scala-compiler" % scalaVersion.value % "provided"
     )
   )
-
 
 lazy val coreTests = project
   .in(file("core-tests"))
   .dependsOn(core)
-  .settings(stdSettings("core-tests"))
-  .settings(
-    mainClass := Some("com.schuwalow.delegate.Main"),
-    libraryDependencies ++= Seq(
-      "dev.zio" %% "zio" % ZioVersion,
-      "org.scala-lang" % "scala-reflect" % scalaVersion.value % "provided",
-      "org.scala-lang" % "scala-compiler" % scalaVersion.value % "provided"
-    )
-  )
-
-//      compilerPlugin(("org.scalamacros" % "paradise"  % "2.1.1") cross CrossVersion.full)
+  .settings(stdSettings("delegate-core-tests"))

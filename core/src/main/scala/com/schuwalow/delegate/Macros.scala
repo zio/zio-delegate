@@ -20,7 +20,7 @@ private[delegate] class Macros(val c: Context) {
     val bName = TermName(c.freshName)
 
     val resultType = parseTypeString(
-      (getBaseClass(aTT).toSet ++ getTraits(aTT) ++ getTraits(bTT)).toList.map(_.fullName).distinct.mkString(" with ")
+      (getBaseClass(aTT).toSet ++ getTraits(aTT) ++ getTraits(bTT)).toList.map(_.name).distinct.mkString(" with ")
     )
     val resultTypeName = TypeName(c.freshName)
     q"""
@@ -64,12 +64,9 @@ private[delegate] class Macros(val c: Context) {
       if (!args.forwardObjectMethods) isObjectMethod(m) else false
 
     def modifiedClass(classDecl: ClassDef, delegateTo: ValDef): c.Tree = {
-      val (className, fields, bases, body) = try {
-        val q"class $className(..$fields) extends ..$bases { ..$body }" = classDecl
-        (className, fields, bases, body)
-      } catch {
-        case _: MatchError => abort("Annotation is only supported on classes")
-      }
+      // classDecl match { case ClassDef(classMods, className, fields, Template(bases, _, body)) =>
+      val q"..$mods class $className(..$fields) extends ..$bases { ..$body }" = classDecl
+
       val existingMethods = body
         .flatMap(
           tree =>
@@ -87,7 +84,7 @@ private[delegate] class Macros(val c: Context) {
           getTraits(toType) -- bases.flatMap(b => getTraits(c.typecheck(b, c.TYPEmode).tpe)).toSet
         else Set.empty
       val resultType = parseTypeString(
-        (bases.map(_.toString()) ++ additionalTraits.map(_.fullName).toList).mkString(" with ")
+        (bases.map(_.toString()) ++ additionalTraits.map(_.name).toList).mkString(" with ")
       )
       val extensions = overlappingMethods(toType, resultType, !isBlackListed(_)).filterNot {
         case (n, _) =>
@@ -97,7 +94,7 @@ private[delegate] class Macros(val c: Context) {
       val resultTypeName = TypeName(c.freshName)
       q"""
       ${c.parse(s"abstract class $resultTypeName extends $resultType")}
-      class $className(..$fields) extends $resultTypeName { ..${body ++ extensions} }
+      $mods class $className(..$fields) extends $resultTypeName { ..${body ++ extensions} }
       """
     }
 
@@ -151,18 +148,11 @@ private[delegate] class Macros(val c: Context) {
   private[this] def getBaseClass(t: Type): Option[ClassSymbol] =
     t.baseClasses.map(_.asClass).find(_.isClass)
 
-  private[this] def typeCheckVal(valDecl: ValDef): (TermName, Type) = {
-    val (tname, tpt) = try {
-      val q"$mods val $tname: $tpt = $expr" = valDecl
-      (tname, tpt)
-    } catch {
-      case _: MatchError => abort("Only val members are supported.")
-    }
-
+  private[this] val typeCheckVal: ValDef => (TermName, Type) = { case ValDef(_, tname, tpt, _) =>
     val tpe = try {
-      c.typecheck(q"${tpt.duplicate}", c.TYPEmode).tpe
+      c.typecheck(tpt.duplicate, c.TYPEmode).tpe
     } catch {
-      case _: TypecheckException => abort(s"Type ${tpt.toString()} needs a stable reference.")
+      case e: TypecheckException => abort(s"Type ${tpt.toString()} needs a stable reference.")
     }
     (tname, tpe)
   }
