@@ -309,24 +309,33 @@ workflows:
             - test_211_jdk11_js
           filters:
             branches:
-              ignore: /.*/
+              only:
+                - master
             tags:
               only: /^v(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-((?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*)(?:\.(?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*))*))?(?:\+([0-9a-zA-Z-]+(?:\.[0-9a-zA-Z-]+)*))?$/
       - release_212:
           context: Sonatype
           requires:
-            - release_211
+            - test_212_jdk8_jvm
+            - test_212_jdk11_jvm
+            - test_212_jdk8_js
+            - test_212_jdk11_js
           filters:
             branches:
-              ignore: /.*/
+              only:
+                - master
             tags:
               only: /^v(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-((?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*)(?:\.(?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*))*))?(?:\+([0-9a-zA-Z-]+(?:\.[0-9a-zA-Z-]+)*))?$/
       - release_213:
           context: Sonatype
           requires:
-            - release_212
+            - test_213_jdk8_jvm
+            - test_213_jdk11_jvm
+            - test_213_jdk8_js
+            - test_213_jdk11_js
           filters:
             branches:
-              ignore: /.*/
+              only:
+                - master
             tags:
               only: /^v(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-((?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*)(?:\.(?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*))*))?(?:\+([0-9a-zA-Z-]+(?:\.[0-9a-zA-Z-]+)*))?$/
