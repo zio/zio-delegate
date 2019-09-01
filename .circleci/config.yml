@@ -120,13 +120,6 @@ jobs:
       - <<: *scala_213
       - <<: *jdk_8
 
-  test_dotty_jdk8_jvm:
-    <<: *testJVM
-    <<: *machine_ubuntu
-    environment:
-      - <<: *scala_dotty
-      - <<: *jdk_8
-
   test_211_jdk11_jvm:
     <<: *testJVM
     <<: *machine_ubuntu
