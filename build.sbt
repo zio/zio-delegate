@@ -69,12 +69,16 @@ lazy val coreTests = crossProject(JSPlatform, JVMPlatform)
   .in(file("core-tests"))
   .dependsOn(core)
   .settings(stdSettings("delegate-core-tests"))
+  .settings(
+    skip in publish := true
+  )
 
 lazy val examples = crossProject(JSPlatform, JVMPlatform)
   .in(file("examples"))
   .dependsOn(core)
   .settings(stdSettings("delegate-examples"))
   .settings(
+    skip in publish := true
     libraryDependencies ++= Seq(
       "dev.zio" %% "zio" % "1.0.0-RC11-1"
     )
