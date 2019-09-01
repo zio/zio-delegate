@@ -10,6 +10,10 @@ If using a scala version < 2.13 you'll also need to add the macro paradise compi
 ```scala
 compilerPlugin(("org.scalamacros" % "paradise"  % "2.1.1") cross CrossVersion.full)
 ```
+If using scala 2.13 you need to add the macro annotation compiler option.
+```scala
+-Ymacro-annotations
+```
 
 ## 1. @delegate annotation
 This annotation can only be used on a  constructur parameter in a class definition.

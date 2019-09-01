@@ -32,5 +32,15 @@ class MixSpec extends UnitSpec {
       val mixed = Mix[Foo, Bar].mix(new Foo(), new Bar {})
       assert(mixed.a == 1 && mixed.b == 2)
     }
+    it("should support methods with same name"){
+      trait Foo {
+        def a(a: Int): Int
+      }
+      trait Bar {
+        def a(a: String): String
+      }
+      val mixed = Mix[Foo, Bar].mix(new Foo { def a(a: Int) = 1 }, new Bar { def a(a: String) = "foo" })
+      assert(mixed.a(1) == 1 && mixed.a("") == "foo")
+    }
   }
 }

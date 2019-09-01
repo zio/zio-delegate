@@ -43,7 +43,9 @@ object BuildHelper {
   def extraOptions(scalaVersion: String, optimize: Boolean) =
     CrossVersion.partialVersion(scalaVersion) match {
       case Some((2, 13)) =>
-        optimizerOptions(optimize)
+        Seq(
+          "-Ymacro-annotations"
+        ) ++ optimizerOptions(optimize)
       case Some((2, 12)) =>
         Seq(
           "-opt-warnings",

@@ -16,21 +16,22 @@ private[delegate] class Macros(val c: Context) {
       bTT.typeSymbol.asClass.isTrait -> s"${bTT.typeSymbol.toString()} needs to be a trait."
     )
 
-    val aName          = TermName(c.freshName)
-    val bName          = TermName(c.freshName)
+    val aName          = TermName(c.freshName("a"))
+    val bName          = TermName(c.freshName("b"))
     val resultType     = parseTypeString(s"${aTT.toString()} with ${bTT.toString()}")
-    val resultTypeName = TypeName(c.freshName)
+    val resultTypeName = TypeName(c.freshName("result"))
+    val methods = (
+      overlappingMethods(aTT, resultType).map((_, aName)).toMap ++
+      overlappingMethods(bTT, resultType).map((_, bName)).toMap
+    ).toMap.filterNot { case (m, _) => isObjectMethod(m) }.map {
+      case (m, owner) => delegateMethodDef(m, owner)
+    }
     q"""
     ${c.parse(s"abstract class $resultTypeName extends $resultType")}
     new Mix[$aTT, $bTT] {
       def mix($aName: $aTT, $bName: $bTT): ${resultType} = {
         new ${resultTypeName} {
-          ..${(
-      overlappingMethods(aTT, resultType).mapValues((aName, _)) ++
-        overlappingMethods(bTT, resultType).mapValues((bName, _))
-    ).filterNot { case (_, (_, m)) => isObjectMethod(m) }.map {
-      case (name, (owner, m)) => delegateMethodDef(name, m, owner)
-    }}
+          ..$methods
         }
       }
     }
@@ -83,10 +84,9 @@ private[delegate] class Macros(val c: Context) {
       val resultType = parseTypeString(
         (bases.map(_.toString()) ++ additionalTraits.map(localName).toList).mkString(" with ")
       )
-      val extensions = overlappingMethods(toType, resultType, !isBlackListed(_)).filterNot {
-        case (n, _) =>
-          existingMethods.contains(n)
-      }.map { case (name, m) => delegateMethodDef(name, m, toName) }
+      val extensions = overlappingMethods(toType, resultType, !isBlackListed(_))
+      .filterNot(m => existingMethods.contains(m.name))
+      .map(delegateMethodDef(_, toName))
 
       val resultTypeName = TypeName(c.freshName)
       q"""
@@ -104,7 +104,8 @@ private[delegate] class Macros(val c: Context) {
     }
   }
 
-  private[this] def delegateMethodDef(name: TermName, m: MethodSymbol, to: TermName) = {
+  private[this] def delegateMethodDef(m: MethodSymbol, to: TermName) = {
+    val name = m.name
     val rType = m.returnType
     val mods =
       if (!m.isAbstract) Modifiers(Flag.OVERRIDE)
@@ -178,7 +179,7 @@ private[delegate] class Macros(val c: Context) {
     from: Type,
     to: Type,
     filter: MethodSymbol => Boolean = _ => true
-  ): Map[TermName, MethodSymbol] = {
+  ): Set[MethodSymbol] = {
     def isVisible(m: MethodSymbol) =
       m.isPublic || enclosing.startsWith(m.privateWithin.fullName)
 
@@ -187,11 +188,10 @@ private[delegate] class Macros(val c: Context) {
       .filter(from <:< _)
       .flatMap { s =>
         s.members
-          .flatMap(m => to.member(m.name).alternatives.map(_.asMethod))
+          .flatMap(m => to.member(m.name).alternatives.map(_.asMethod).find(_ == m))
           .filter(m => !m.isConstructor && !m.isFinal && isVisible(m) && filter(m))
       }
-      .map(m => (m.name -> m))
-      .toMap
+      .toSet
   }
 
   private[this] def showInfo(s: String) =
