@@ -1,5 +1,6 @@
 import sbtcrossproject.CrossPlugin.autoImport.crossProject
 import BuildHelper._
+import xerial.sbt.Sonatype._
 
 name := "delegate"
 
@@ -16,11 +17,14 @@ inThisBuild(
     ),
     scmInfo := Some(
       ScmInfo(
-        url("https://github.com/mschuwalow/scala-macro-aop"),
-        "scm:git:git@github.com:mschuwalow/scala-macro-aop.git"
+        url("https://github.com/mschuwalow/delegate"),
+        "scm:git:git@github.com:mschuwalow/delegate.git"
       )
     ),
-    licenses := Seq("Apache 2.0" -> url(s"${scmInfo.value.map(_.browseUrl).get}/blob/v${version.value}/LICENSE"))
+    licenses := Seq("Apache-2.0" -> url(s"${scmInfo.value.map(_.browseUrl).get}/blob/v${version.value}/LICENSE")),
+    pgpPublicRing := file("/tmp/public.asc"),
+    pgpSecretRing := file("/tmp/secret.asc"),
+    releaseEarlyWith := SonatypePublisher
   )
 )
 

@@ -39,7 +39,6 @@ save_cache: &save_cache
           - "~/.ivy2/cache"
           - "~/.sbt"
           - "~/.m2"
-          - "~/website/node_modules"
 
 install_yarn: &install_yarn
   - run:
@@ -90,6 +89,23 @@ testJS: &testJS
         name: Run tests
         command: ./sbt ++${SCALA_VERSION}! testJS
     - <<: *save_cache
+
+release: &release
+  steps:
+      - checkout
+      - run:
+          name: Fetch git tags
+          command: git fetch --tags
+      - <<: *load_cache
+      - run:
+          name: Write PGP public key
+          command: echo -n "${PGP_PUBLIC}" | base64 -d > /tmp/public.asc
+      - run:
+          name: Write PGP secret key
+          command: echo -n "${PGP_SECRET}" | base64 -d > /tmp/secret.asc
+      - run:
+          name: Release artifacts
+          command: ./sbt ++${SCALA_VERSION}! releaseEarly
 
 jobs:
   lint:
@@ -183,6 +199,27 @@ jobs:
       - <<: *scala_213
       - <<: *jdk_11
 
+  release_211:
+    <<: *release
+    <<: *machine_ubuntu
+    environment:
+      - <<: *scala_211
+      - <<: *jdk_8
+
+  release_212:
+    <<: *release
+    <<: *machine_ubuntu
+    environment:
+      - <<: *scala_212
+      - <<: *jdk_8
+
+  release_213:
+    <<: *release
+    <<: *machine_ubuntu
+    environment:
+      - <<: *scala_213
+      - <<: *jdk_8
+
 workflows:
   version: 2
   build:
@@ -261,5 +298,35 @@ workflows:
           requires:
             - lint
           filters:
+            tags:
+              only: /^v(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-((?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*)(?:\.(?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*))*))?(?:\+([0-9a-zA-Z-]+(?:\.[0-9a-zA-Z-]+)*))?$/
+      - release_211:
+          context: Sonatype
+          requires:
+            - test_211_jdk8_jvm
+            - test_211_jdk11_jvm
+            - test_211_jdk8_js
+            - test_211_jdk11_js
+          filters:
+            branches:
+              ignore: /.*/
+            tags:
+              only: /^v(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-((?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*)(?:\.(?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*))*))?(?:\+([0-9a-zA-Z-]+(?:\.[0-9a-zA-Z-]+)*))?$/
+      - release_212:
+          context: Sonatype
+          requires:
+            - release_211
+          filters:
+            branches:
+              ignore: /.*/
+            tags:
+              only: /^v(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-((?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*)(?:\.(?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*))*))?(?:\+([0-9a-zA-Z-]+(?:\.[0-9a-zA-Z-]+)*))?$/
+      - release_213:
+          context: Sonatype
+          requires:
+            - release_212
+          filters:
+            branches:
+              ignore: /.*/
             tags:
               only: /^v(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-((?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*)(?:\.(?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*))*))?(?:\+([0-9a-zA-Z-]+(?:\.[0-9a-zA-Z-]+)*))?$/
