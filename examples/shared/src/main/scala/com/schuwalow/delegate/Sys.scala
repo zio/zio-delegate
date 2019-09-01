@@ -6,6 +6,7 @@ import zio.clock.Clock
 trait Sys extends Serializable {
   def sys: Sys.Service[Any]
 }
+
 object Sys {
   trait Service[R] extends Serializable
 

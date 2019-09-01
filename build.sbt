@@ -48,13 +48,15 @@ lazy val root = project
     core.jvm,
     core.js,
     coreTests.jvm,
-    coreTests.js
+    coreTests.js,
+    examples.jvm,
+    examples.js
   )
   .enablePlugins(ScalaJSPlugin)
 
 lazy val core = crossProject(JSPlatform, JVMPlatform)
   .in(file("core"))
-  .settings(stdSettings("delegate-core"))
+  .settings(stdSettings("delegate"))
   .settings(
     scalacOptions --= Seq("-deprecation", "-Xfatal-warnings")
   )
@@ -66,9 +68,9 @@ lazy val core = crossProject(JSPlatform, JVMPlatform)
   )
 
 lazy val coreTests = crossProject(JSPlatform, JVMPlatform)
-  .in(file("core-tests"))
+  .in(file("tests"))
   .dependsOn(core)
-  .settings(stdSettings("delegate-core-tests"))
+  .settings(stdSettings("delegate-tests"))
   .settings(
     skip in publish := true
   )
