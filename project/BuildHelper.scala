@@ -9,14 +9,6 @@ object BuildHelper {
   val compileOnlyDeps = Nil
 
   private val stdOptions = Seq(
-    "-deprecation",
-    "-encoding",
-    "UTF-8",
-    "-feature",
-    "-unchecked"
-  )
-
-  private val std2xOptions = Seq(
     "-Xfatal-warnings",
     "-language:higherKinds",
     "-language:existentials",
@@ -24,7 +16,6 @@ object BuildHelper {
     "-Yrangepos",
     "-Xlint:_,-type-parameter-shadow",
     "-Ywarn-numeric-widen",
-    // "-Ywarn-value-discard"
   )
 
   private def optimizerOptions(optimize: Boolean) =
@@ -51,13 +42,8 @@ object BuildHelper {
 
   def extraOptions(scalaVersion: String, optimize: Boolean) =
     CrossVersion.partialVersion(scalaVersion) match {
-      case Some((0, _)) =>
-        Seq(
-          "-language:implicitConversions",
-          "-Xignore-scala2-macros"
-        )
       case Some((2, 13)) =>
-        std2xOptions ++ optimizerOptions(optimize)
+        optimizerOptions(optimize)
       case Some((2, 12)) =>
         Seq(
           "-opt-warnings",
@@ -74,7 +60,7 @@ object BuildHelper {
           "-Xsource:2.13",
           "-Xmax-classfile-name",
           "242"
-        ) ++ std2xOptions ++ optimizerOptions(optimize)
+        ) ++ optimizerOptions(optimize)
       case Some((2, 11)) =>
         Seq(
           "-Ypartial-unification",
@@ -89,7 +75,7 @@ object BuildHelper {
           "-Xsource:2.13",
           "-Xmax-classfile-name",
           "242"
-        ) ++ std2xOptions
+        )
       case _ => Seq.empty
     }
 
@@ -108,19 +94,17 @@ object BuildHelper {
       }
     },
     parallelExecution in Test := true,
-    incOptions ~= (_.withLogRecompileOnMacro(false)),
+    incOptions ~= (_.withLogRecompileOnMacro(true)),
     autoAPIMappings := true,
     Compile / unmanagedSourceDirectories ++= {
       CrossVersion.partialVersion(scalaVersion.value) match {
-        case Some((2, x)) if x <= 11 =>
+        case Some((2, 11)) =>
           Seq(
             CrossType.Full.sharedSrcDir(baseDirectory.value, "main").toList.map(f => file(f.getPath + "-2.11")),
             CrossType.Full.sharedSrcDir(baseDirectory.value, "test").toList.map(f => file(f.getPath + "-2.11"))
           ).flatten
         case Some((2, x)) if x >= 12 =>
           Seq(
-            Seq(file(sourceDirectory.value.getPath + "/main/scala-2.12")),
-            Seq(file(sourceDirectory.value.getPath + "/main/scala-2.12+")),
             CrossType.Full.sharedSrcDir(baseDirectory.value, "main").toList.map(f => file(f.getPath + "-2.12+")),
             CrossType.Full.sharedSrcDir(baseDirectory.value, "test").toList.map(f => file(f.getPath + "-2.12+"))
           ).flatten
@@ -130,14 +114,10 @@ object BuildHelper {
     },
     Test / unmanagedSourceDirectories ++= {
       CrossVersion.partialVersion(scalaVersion.value) match {
-        case Some((2, x)) if x <= 11 =>
+        case Some((2, 11)) =>
           Seq(file(sourceDirectory.value.getPath + "/test/scala-2.11"))
         case Some((2, x)) if x >= 12 =>
-          Seq(
-            file(sourceDirectory.value.getPath + "/test/scala-2.12"),
-            file(sourceDirectory.value.getPath + "/test/scala-2.12+")
-          )
-          Nil
+          Seq(file(sourceDirectory.value.getPath + "/test/scala-2.12+"))
       }
     }
   ) ++ replSettings
