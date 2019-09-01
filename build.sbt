@@ -78,7 +78,7 @@ lazy val examples = crossProject(JSPlatform, JVMPlatform)
   .dependsOn(core)
   .settings(stdSettings("delegate-examples"))
   .settings(
-    skip in publish := true
+    skip in publish := true,
     libraryDependencies ++= Seq(
       "dev.zio" %% "zio" % "1.0.0-RC11-1"
     )
