@@ -1,3 +1,4 @@
+import sbtcrossproject.CrossPlugin.autoImport.crossProject
 import BuildHelper._
 
 name := "delegate"
@@ -6,7 +7,7 @@ inThisBuild(
   List(
     organization := "com.schuwalow",
     developers := List(
-        Developer(
+      Developer(
         "mschuwalow",
         "Maxim Schuwalow",
         "maxim.schuwalow@gmail.com",
@@ -19,18 +20,35 @@ inThisBuild(
         "scm:git:git@github.com:mschuwalow/scala-macro-aop.git"
       )
     ),
-    licenses := Seq("Apache 2.0" -> url(s"${scmInfo.value.map(_.browseUrl).get}/blob/v${version.value}/LICENSE")),
+    licenses := Seq("Apache 2.0" -> url(s"${scmInfo.value.map(_.browseUrl).get}/blob/v${version.value}/LICENSE"))
   )
+)
+
+addCommandAlias("fmt", "all scalafmtSbt scalafmt test:scalafmt")
+addCommandAlias("check", "all scalafmtSbtCheck scalafmtCheck test:scalafmtCheck")
+addCommandAlias(
+  "testJVM",
+  ";coreTestsJVM/test;examplesJVM/compile"
+)
+addCommandAlias(
+  "testJS",
+  ";coreTestsJS/test;examplesJS/compile"
 )
 
 lazy val root = project
   .in(file("."))
-  .aggregate(
-    core,
-    coreTests
+  .settings(
+    skip in publish := true,
   )
+  .aggregate(
+    coreJVM,
+    coreJS,
+    coreTestsJVM,
+    coreTestsJS
+  )
+  .enablePlugins(ScalaJSPlugin)
 
-lazy val core = project
+lazy val core = crossProject(JSPlatform, JVMPlatform)
   .in(file("core"))
   .settings(stdSettings("delegate-core"))
   .settings(
@@ -38,20 +56,28 @@ lazy val core = project
   )
   .settings(
     libraryDependencies ++= Seq(
-      "org.scala-lang" % "scala-reflect" % scalaVersion.value % "provided",
+      "org.scala-lang" % "scala-reflect"  % scalaVersion.value % "provided",
       "org.scala-lang" % "scala-compiler" % scalaVersion.value % "provided"
     )
   )
+lazy val coreJVM = core.jvm
+lazy val coreJS = core.js
 
-lazy val coreTests = project
+lazy val coreTests = crossProject(JSPlatform, JVMPlatform)
   .in(file("core-tests"))
   .dependsOn(core)
   .settings(stdSettings("delegate-core-tests"))
+lazy val coreTestsJVM = coreTests.jvm
+lazy val coreTestsJS = coreTests.js
 
-lazy val examples = project
+lazy val examples = crossProject(JSPlatform, JVMPlatform)
   .in(file("examples"))
   .dependsOn(core)
   .settings(stdSettings("delegate-examples"))
-  .settings(libraryDependencies ++= Seq(
-    "dev.zio" %% "zio" % "1.0.0-RC11-1"
-  ))
+  .settings(
+    libraryDependencies ++= Seq(
+      "dev.zio" %% "zio" % "1.0.0-RC11-1"
+    )
+  )
+lazy val examplesJVM = examples.jvm
+lazy val examplesJS = examples.js

@@ -22,7 +22,7 @@ private[delegate] class Macros(val c: Context) {
     val resultTypeName = TypeName(c.freshName("result"))
     val methods = (
       overlappingMethods(aTT, resultType).map((_, aName)).toMap ++
-      overlappingMethods(bTT, resultType).map((_, bName)).toMap
+        overlappingMethods(bTT, resultType).map((_, bName)).toMap
     ).toMap.filterNot { case (m, _) => isObjectMethod(m) }.map {
       case (m, owner) => delegateMethodDef(m, owner)
     }
@@ -85,8 +85,8 @@ private[delegate] class Macros(val c: Context) {
         (bases.map(_.toString()) ++ additionalTraits.map(localName).toList).mkString(" with ")
       )
       val extensions = overlappingMethods(toType, resultType, !isBlackListed(_))
-      .filterNot(m => existingMethods.contains(m.name))
-      .map(delegateMethodDef(_, toName))
+        .filterNot(m => existingMethods.contains(m.name))
+        .map(delegateMethodDef(_, toName))
 
       val resultTypeName = TypeName(c.freshName)
       q"""
@@ -105,7 +105,7 @@ private[delegate] class Macros(val c: Context) {
   }
 
   private[this] def delegateMethodDef(m: MethodSymbol, to: TermName) = {
-    val name = m.name
+    val name  = m.name
     val rType = m.returnType
     val mods =
       if (!m.isAbstract) Modifiers(Flag.OVERRIDE)

@@ -2,7 +2,7 @@ package com.schuwalow.delegate
 
 class MixSpec extends UnitSpec {
   describe("Mix") {
-    it("should allow mixing of traits"){
+    it("should allow mixing of traits") {
       trait Foo {
         def a: Int = 1
       }
@@ -22,7 +22,7 @@ class MixSpec extends UnitSpec {
       val mixed = Mix[Foo, Bar].mix(new Foo {}, new Bar {})
       assert(mixed.a == 2)
     }
-    it("should allow the first type to be a class"){
+    it("should allow the first type to be a class") {
       class Foo {
         def a: Int = 1
       }
@@ -32,7 +32,7 @@ class MixSpec extends UnitSpec {
       val mixed = Mix[Foo, Bar].mix(new Foo(), new Bar {})
       assert(mixed.a == 1 && mixed.b == 2)
     }
-    it("should support methods with same name"){
+    it("should support methods with same name") {
       trait Foo {
         def a(a: Int): Int
       }

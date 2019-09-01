@@ -5,7 +5,7 @@ import explicitdeps.ExplicitDepsPlugin.autoImport._
 import sbtcrossproject.CrossPlugin.autoImport.CrossType
 
 object BuildHelper {
-  val testDeps        = Seq("org.scalatest"  %% "scalatest"   % "3.0.8" % "test")
+  val testDeps        = Seq("org.scalatest" %% "scalatest" % "3.0.8" % "test")
   val compileOnlyDeps = Nil
 
   private val stdOptions = Seq(
@@ -15,7 +15,7 @@ object BuildHelper {
     "-explaintypes",
     "-Yrangepos",
     "-Xlint:_,-type-parameter-shadow",
-    "-Ywarn-numeric-widen",
+    "-Ywarn-numeric-widen"
   )
 
   private def optimizerOptions(optimize: Boolean) =
@@ -81,48 +81,49 @@ object BuildHelper {
       case _ => Seq.empty
     }
 
-  def stdSettings(prjName: String) = Seq(
-    name := s"$prjName",
-    scalacOptions := stdOptions,
-    crossScalaVersions := Seq("2.12.8", "2.13.0", "2.11.12"),
-    scalaVersion in ThisBuild := crossScalaVersions.value.head,
-    scalacOptions := stdOptions ++ extraOptions(scalaVersion.value, optimize = !isSnapshot.value),
-    libraryDependencies ++= compileOnlyDeps ++ testDeps ++ {
-      CrossVersion.partialVersion(scalaVersion.value) match {
-        case Some((2, x)) if x >= 13 =>
-          Nil
-        case _ =>
-          Seq(compilerPlugin(("org.scalamacros" % "paradise"  % "2.1.1") cross CrossVersion.full))
+  def stdSettings(prjName: String) =
+    Seq(
+      name := s"$prjName",
+      scalacOptions := stdOptions,
+      crossScalaVersions := Seq("2.12.8", "2.13.0", "2.11.12"),
+      scalaVersion in ThisBuild := crossScalaVersions.value.head,
+      scalacOptions := stdOptions ++ extraOptions(scalaVersion.value, optimize = !isSnapshot.value),
+      libraryDependencies ++= compileOnlyDeps ++ testDeps ++ {
+        CrossVersion.partialVersion(scalaVersion.value) match {
+          case Some((2, x)) if x >= 13 =>
+            Nil
+          case _ =>
+            Seq(compilerPlugin(("org.scalamacros" % "paradise" % "2.1.1").cross(CrossVersion.full)))
+        }
+      },
+      parallelExecution in Test := true,
+      incOptions ~= (_.withLogRecompileOnMacro(true)),
+      autoAPIMappings := true,
+      Compile / unmanagedSourceDirectories ++= {
+        CrossVersion.partialVersion(scalaVersion.value) match {
+          case Some((2, 11)) =>
+            Seq(
+              CrossType.Full.sharedSrcDir(baseDirectory.value, "main").toList.map(f => file(f.getPath + "-2.11")),
+              CrossType.Full.sharedSrcDir(baseDirectory.value, "test").toList.map(f => file(f.getPath + "-2.11"))
+            ).flatten
+          case Some((2, x)) if x >= 12 =>
+            Seq(
+              CrossType.Full.sharedSrcDir(baseDirectory.value, "main").toList.map(f => file(f.getPath + "-2.12+")),
+              CrossType.Full.sharedSrcDir(baseDirectory.value, "test").toList.map(f => file(f.getPath + "-2.12+"))
+            ).flatten
+          case _ =>
+            Nil
+        }
+      },
+      Test / unmanagedSourceDirectories ++= {
+        CrossVersion.partialVersion(scalaVersion.value) match {
+          case Some((2, 11)) =>
+            Seq(file(sourceDirectory.value.getPath + "/test/scala-2.11"))
+          case Some((2, x)) if x >= 12 =>
+            Seq(file(sourceDirectory.value.getPath + "/test/scala-2.12+"))
+        }
       }
-    },
-    parallelExecution in Test := true,
-    incOptions ~= (_.withLogRecompileOnMacro(true)),
-    autoAPIMappings := true,
-    Compile / unmanagedSourceDirectories ++= {
-      CrossVersion.partialVersion(scalaVersion.value) match {
-        case Some((2, 11)) =>
-          Seq(
-            CrossType.Full.sharedSrcDir(baseDirectory.value, "main").toList.map(f => file(f.getPath + "-2.11")),
-            CrossType.Full.sharedSrcDir(baseDirectory.value, "test").toList.map(f => file(f.getPath + "-2.11"))
-          ).flatten
-        case Some((2, x)) if x >= 12 =>
-          Seq(
-            CrossType.Full.sharedSrcDir(baseDirectory.value, "main").toList.map(f => file(f.getPath + "-2.12+")),
-            CrossType.Full.sharedSrcDir(baseDirectory.value, "test").toList.map(f => file(f.getPath + "-2.12+"))
-          ).flatten
-        case _ =>
-          Nil
-      }
-    },
-    Test / unmanagedSourceDirectories ++= {
-      CrossVersion.partialVersion(scalaVersion.value) match {
-        case Some((2, 11)) =>
-          Seq(file(sourceDirectory.value.getPath + "/test/scala-2.11"))
-        case Some((2, x)) if x >= 12 =>
-          Seq(file(sourceDirectory.value.getPath + "/test/scala-2.12+"))
-      }
-    }
-  ) ++ replSettings
+    ) ++ replSettings
 
   implicit class ModuleHelper(p: Project) {
     def module: Project = p.in(file(p.id)).settings(stdSettings(p.id))
