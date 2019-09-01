@@ -38,13 +38,13 @@ addCommandAlias(
 lazy val root = project
   .in(file("."))
   .settings(
-    skip in publish := true,
+    skip in publish := true
   )
   .aggregate(
-    coreJVM,
-    coreJS,
-    coreTestsJVM,
-    coreTestsJS
+    core.jvm,
+    core.js,
+    coreTests.jvm,
+    coreTests.js
   )
   .enablePlugins(ScalaJSPlugin)
 
@@ -60,15 +60,11 @@ lazy val core = crossProject(JSPlatform, JVMPlatform)
       "org.scala-lang" % "scala-compiler" % scalaVersion.value % "provided"
     )
   )
-lazy val coreJVM = core.jvm
-lazy val coreJS = core.js
 
 lazy val coreTests = crossProject(JSPlatform, JVMPlatform)
   .in(file("core-tests"))
   .dependsOn(core)
   .settings(stdSettings("delegate-core-tests"))
-lazy val coreTestsJVM = coreTests.jvm
-lazy val coreTestsJS = coreTests.js
 
 lazy val examples = crossProject(JSPlatform, JVMPlatform)
   .in(file("examples"))
@@ -79,5 +75,3 @@ lazy val examples = crossProject(JSPlatform, JVMPlatform)
       "dev.zio" %% "zio" % "1.0.0-RC11-1"
     )
   )
-lazy val examplesJVM = examples.jvm
-lazy val examplesJS = examples.js

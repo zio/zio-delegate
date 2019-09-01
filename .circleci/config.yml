@@ -183,7 +183,6 @@ jobs:
       - <<: *scala_213
       - <<: *jdk_11
 
-
 workflows:
   version: 2
   build:
