@@ -47,3 +47,11 @@ lazy val coreTests = project
   .in(file("core-tests"))
   .dependsOn(core)
   .settings(stdSettings("delegate-core-tests"))
+
+lazy val examples = project
+  .in(file("examples"))
+  .dependsOn(core)
+  .settings(stdSettings("delegate-examples"))
+  .settings(libraryDependencies ++= Seq(
+    "dev.zio" %% "zio" % "1.0.0-RC11-1"
+  ))

@@ -5,13 +5,14 @@ import explicitdeps.ExplicitDepsPlugin.autoImport._
 import sbtcrossproject.CrossPlugin.autoImport.CrossType
 
 object BuildHelper {
-  val testDeps        = Seq("org.scalatest"  %% "scalatest"   % "3.0.4" % "test")
+  val testDeps        = Seq("org.scalatest"  %% "scalatest"   % "3.0.8" % "test")
   val compileOnlyDeps = Nil
-  val compilerPlugins = Seq(
-    compilerPlugin("org.spire-math"   %% "kind-projector"     % "0.9.4"),
-    compilerPlugin("com.olegpy"       %% "better-monadic-for" % "0.3.0-M4"),
-    compilerPlugin(("org.scalamacros" % "paradise"  % "2.1.1") cross CrossVersion.full)
-  )
+  // val compilerPlugins = CrossVersion.partialVersion(scalaVersion.value) match {
+  //   case Some((2, x)) if x >= 13 =>
+  //     Nil
+  //   case _ =>
+  //     Seq(compilerPlugin(("org.scalamacros" % "paradise"  % "2.1.1") cross CrossVersion.full))
+  // }
 
   private val stdOptions = Seq(
     "-deprecation",
@@ -104,7 +105,14 @@ object BuildHelper {
     crossScalaVersions := Seq("2.12.8", "2.13.0", "2.11.12"),
     scalaVersion in ThisBuild := crossScalaVersions.value.head,
     scalacOptions := stdOptions ++ extraOptions(scalaVersion.value, optimize = !isSnapshot.value),
-    libraryDependencies ++= compileOnlyDeps ++ testDeps ++ compilerPlugins,
+    libraryDependencies ++= compileOnlyDeps ++ testDeps ++ {
+      CrossVersion.partialVersion(scalaVersion.value) match {
+        case Some((2, x)) if x >= 13 =>
+          Nil
+        case _ =>
+          Seq(compilerPlugin(("org.scalamacros" % "paradise"  % "2.1.1") cross CrossVersion.full))
+      }
+    },
     parallelExecution in Test := true,
     incOptions ~= (_.withLogRecompileOnMacro(false)),
     autoAPIMappings := true,

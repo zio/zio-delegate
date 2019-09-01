@@ -6,9 +6,9 @@ import scala.reflect.macros.TypecheckException
 private[delegate] class Macros(val c: Context) {
   import c.universe._
 
-  def mixImpl[A, B](implicit aT: WeakTypeTag[A], bT: WeakTypeTag[B]): c.Tree = {
-    val aTT = aT.tpe
-    val bTT = bT.tpe
+  def mixImpl[A: WeakTypeTag, B: WeakTypeTag]: c.Tree = {
+    val aTT = weakTypeOf[A]
+    val bTT = weakTypeOf[B]
 
     // aT may extends a class bT may not as it will be mixed in
     preconditions(
@@ -18,18 +18,17 @@ private[delegate] class Macros(val c: Context) {
 
     val aName = TermName(c.freshName)
     val bName = TermName(c.freshName)
-
-    val resultType = parseTypeString(
-      (getBaseClass(aTT).toSet ++ getTraits(aTT) ++ getTraits(bTT)).toList.map(_.name).distinct.mkString(" with ")
-    )
+    val resultType = parseTypeString(s"${aTT.toString()} with ${bTT.toString()}")
     val resultTypeName = TypeName(c.freshName)
     q"""
     ${c.parse(s"abstract class $resultTypeName extends $resultType")}
     new Mix[$aTT, $bTT] {
       def mix($aName: $aTT, $bName: $bTT): ${resultType} = {
         new ${resultTypeName} {
-          ..${(overlappingMethods(aT.tpe, resultType).mapValues((aName, _)) ++ overlappingMethods(bT.tpe, resultType)
-      .mapValues((bName, _))).filterNot { case (_, (_, m)) => isObjectMethod(m) }.map {
+          ..${(
+              overlappingMethods(aTT, resultType).mapValues((aName, _)) ++
+              overlappingMethods(bTT, resultType).mapValues((bName, _))
+            ).filterNot { case (_, (_, m)) => isObjectMethod(m) }.map {
       case (name, (owner, m)) => delegateMethodDef(name, m, owner)
     }}
         }
@@ -64,9 +63,7 @@ private[delegate] class Macros(val c: Context) {
       if (!args.forwardObjectMethods) isObjectMethod(m) else false
 
     def modifiedClass(classDecl: ClassDef, delegateTo: ValDef): c.Tree = {
-      // classDecl match { case ClassDef(classMods, className, fields, Template(bases, _, body)) =>
       val q"..$mods class $className(..$fields) extends ..$bases { ..$body }" = classDecl
-
       val existingMethods = body
         .flatMap(
           tree =>
@@ -84,7 +81,9 @@ private[delegate] class Macros(val c: Context) {
           getTraits(toType) -- bases.flatMap(b => getTraits(c.typecheck(b, c.TYPEmode).tpe)).toSet
         else Set.empty
       val resultType = parseTypeString(
-        (bases.map(_.toString()) ++ additionalTraits.map(_.name).toList).mkString(" with ")
+        (bases.map(_.toString()) ++ additionalTraits.map{c =>
+          c.fullName
+        }.toList).mkString(" with ")
       )
       val extensions = overlappingMethods(toType, resultType, !isBlackListed(_)).filterNot {
         case (n, _) =>
@@ -145,9 +144,6 @@ private[delegate] class Macros(val c: Context) {
     loop(t.baseClasses.map(_.asClass)).toSet
   }
 
-  private[this] def getBaseClass(t: Type): Option[ClassSymbol] =
-    t.baseClasses.map(_.asClass).find(_.isClass)
-
   private[this] val typeCheckVal: ValDef => (TermName, Type) = { case ValDef(_, tname, tpt, _) =>
     val tpe = try {
       c.typecheck(tpt.duplicate, c.TYPEmode).tpe
@@ -161,7 +157,8 @@ private[delegate] class Macros(val c: Context) {
     try {
       c.typecheck(c.parse(s"null.asInstanceOf[$str]"), c.TYPEmode).tpe
     } catch {
-      case _: TypecheckException => abort(s"Failed typechecking calculated type $str")
+      case _: TypecheckException =>
+        abort(s"Failed typechecking calculated type $str")
     }
 
   private[this] def overlappingMethods(
