@@ -111,7 +111,7 @@ private[delegate] class Macros(val c: Context) {
       if (!m.isAbstract) Modifiers(Flag.OVERRIDE)
       else Modifiers()
 
-    if (m.isVal) {
+    if (m.paramss.isEmpty) {
       q"$mods val $name: $rType = $to.$name"
     } else {
       val typeParams = m.typeParams.map(internal.typeDef(_))
@@ -162,9 +162,9 @@ private[delegate] class Macros(val c: Context) {
     }
 
   private[this] def localName(symbol: ClassSymbol): String = {
-    val path = symbol.fullName.split('.')
+    val path = "_root_" +: symbol.fullName.split('.')
     path
-      .zip(enclosing.split('.').padTo(path.length, ""))
+      .zip(("_root_" +: enclosing.split('.')).padTo(path.length, ""))
       .dropWhile { case ((l, r)) => l == r }
       .map(_._1)
       .mkString(".")
