@@ -6,7 +6,7 @@ name := "delegate"
 
 inThisBuild(
   List(
-    organization := "com.schuwalow",
+    organization := "com.schuwalow.delegate",
     developers := List(
       Developer(
         "mschuwalow",
