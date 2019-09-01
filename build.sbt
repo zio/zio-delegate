@@ -6,6 +6,7 @@ inThisBuild(
   List(
     name := "delegate",
     organization := "com.schuwalow",
+    homepage := Some(url("https://github.com/mschuwalow/delegate")),
     developers := List(
       Developer(
         "mschuwalow",
@@ -16,7 +17,7 @@ inThisBuild(
     ),
     scmInfo := Some(
       ScmInfo(
-        url("https://github.com/mschuwalow/delegate"),
+        homepage.value.get,
         "scm:git:git@github.com:mschuwalow/delegate.git"
       )
     ),
