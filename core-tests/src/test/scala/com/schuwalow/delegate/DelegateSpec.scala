@@ -8,7 +8,7 @@ class DelegateSpec extends UnitSpec {
         def a: Int
       }
       {
-        class Bar(@delegate foo: Foo) extends Foo
+        class Bar(@delegate foo: Foo)
         assert((new Bar(new Foo { def a = 3 })).a == 3)
       }
     }
@@ -17,7 +17,7 @@ class DelegateSpec extends UnitSpec {
         def a: Int = 3
       }
       {
-        class Bar(@delegate foo: Foo) extends Foo {
+        class Bar(@delegate foo: Foo) {
           override def a = 4
         }
         assert((new Bar(new Foo {})).a == 4)
@@ -39,7 +39,7 @@ class DelegateSpec extends UnitSpec {
         }
       }
       {
-        class Bar(@delegate foo: Test.Foo) extends Test.Foo
+        class Bar(@delegate foo: Test.Foo)
         assert((new Bar(new Test.Foo {})).a == 3)
       }
     }
@@ -53,11 +53,11 @@ class DelegateSpec extends UnitSpec {
       }
     }
     it("should handle methods with same name but different signatures") {
-      abstract class Foo {
+      trait Foo {
         def a(i: Int): Int = 3
       }
       {
-        class Bar(@delegate foo: Foo) extends Foo {
+        class Bar(@delegate foo: Foo) {
           def a(s: String) = "bar"
         }
         val inst = new Bar(new Foo {})
@@ -65,14 +65,14 @@ class DelegateSpec extends UnitSpec {
       }
     }
     it("should handle methods with same name but different signatures - 2") {
-      abstract class Foo {
+      trait Foo {
         def a(i: Int): Int = 3
       }
-      abstract class Foo1 extends Foo {
+      trait Foo1 extends Foo {
         def a(s: String) = "bar"
       }
       {
-        class Bar(@delegate foo: Foo1) extends Foo1
+        class Bar(@delegate foo: Foo1)
         val inst = new Bar(new Foo1 {})
         assert(inst.a("") == "bar" && inst.a(0) == 3)
       }

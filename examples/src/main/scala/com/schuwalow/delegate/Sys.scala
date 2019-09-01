@@ -18,5 +18,5 @@ object Sys {
     ev.mix(a, new SysInstance(a))
   }
 
-  val env: Clock.Live with Blocking.Live with Sys = withSys[Clock with Blocking](new Clock.Live with Blocking.Live)
+  val env: Clock with Blocking with Sys = withSys[Clock with Blocking](new Clock.Live with Blocking.Live)
 }

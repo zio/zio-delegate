@@ -81,7 +81,7 @@ private[delegate] class Macros(val c: Context) {
           getTraits(toType) -- bases.flatMap(b => getTraits(c.typecheck(b, c.TYPEmode).tpe)).toSet
         else Set.empty
       val resultType = parseTypeString(
-        (bases.map(_.toString()) ++ additionalTraits.map(_.fullName).toList).mkString(" with ")
+        (bases.map(_.toString()) ++ additionalTraits.map(localName).toList).mkString(" with ")
       )
       val extensions = overlappingMethods(toType, resultType, !isBlackListed(_)).filterNot {
         case (n, _) =>
@@ -160,15 +160,25 @@ private[delegate] class Macros(val c: Context) {
         abort(s"Failed typechecking calculated type $str")
     }
 
+  private[this] def localName(symbol: ClassSymbol): String = {
+    val path = symbol.fullName.split('.')
+    path
+      .zip(enclosing.split('.').padTo(path.length, ""))
+      .dropWhile { case ((l, r)) => l == r }
+      .map(_._1)
+      .mkString(".")
+  }
+
+  private[this] val enclosing = c.enclosingClass match {
+    case clazz if clazz.isEmpty => c.enclosingPackage.symbol.fullName
+    case clazz                  => clazz.symbol.fullName
+  }
+
   private[this] def overlappingMethods(
     from: Type,
     to: Type,
     filter: MethodSymbol => Boolean = _ => true
   ): Map[TermName, MethodSymbol] = {
-    val enclosing = c.enclosingClass match {
-      case clazz if clazz.isEmpty => c.enclosingPackage.symbol.fullName
-      case clazz                  => clazz.symbol.fullName
-    }
     def isVisible(m: MethodSymbol) =
       m.isPublic || enclosing.startsWith(m.privateWithin.fullName)
 

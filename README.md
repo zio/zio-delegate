@@ -16,7 +16,6 @@ This annotation can only be used on a  constructur parameter in a class definiti
 This will do a number of things to the resulting class definitions:
 
 * The class will additionally extend any traits extended by the annotated member.
-  Note: This will probably not work with traits that are not addressable by their fullName. In this case generateTraits should be turned off.
 ```scala
 import com.schuwalow.delegate._
 
