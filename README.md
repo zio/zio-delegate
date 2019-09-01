@@ -18,7 +18,7 @@ If using scala 2.13 you need to add the macro annotation compiler option.
 -Ymacro-annotations
 ```
 
-## 1. @delegate annotation
+## @delegate annotation
 This annotation can only be used on a  constructur parameter in a class definition.
 This will do a number of things to the resulting class definitions:
 
@@ -56,7 +56,7 @@ class Bar1(@delegate f: Foo) {
 println(new Bar1(new Foo {}).foo) // 3
 
 // classes have to be explicitly extended. Forwarders will still
-// automatically generated though.
+// be automatically generated though.
 class Bar2(@delegate f: Foo1) exends Foo1
 println(new Bar1(new Foo1 { def foo1 = 3 }).foo1) // 3
 ```
@@ -77,9 +77,9 @@ println(new Bar1(new Foo1 { def foo1 = 3 }).foo1) // 3
     "scala.Any.getClass"
   )
   ```
-  - generateTraits: Whether the class should be adopted to automatically any traits defined on the automated member. If set to false only methods of traits / classes that are explicitly extended will be forwarded.
+  - generateTraits: Whether the class should be adopted to automatically extend any traits defined on the annotated member. If set to false only methods of traits / classes that are explicitly extended will be forwarded.
 
-## 2. Mix Typeclass
+## Mix Typeclass
 
 An instance of
 ```scala

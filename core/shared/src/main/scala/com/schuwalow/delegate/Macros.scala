@@ -104,7 +104,7 @@ private[delegate] class Macros(val c: Context) {
     }
   }
 
-  private[this] def delegateMethodDef(m: MethodSymbol, to: TermName) = {
+  final private[this] def delegateMethodDef(m: MethodSymbol, to: TermName) = {
     val name  = m.name
     val rType = m.returnType
     val mods =
@@ -124,7 +124,7 @@ private[delegate] class Macros(val c: Context) {
     }
   }
 
-  private[this] def isObjectMethod(m: MethodSymbol): Boolean =
+  final private[this] def isObjectMethod(m: MethodSymbol): Boolean =
     Set(
       "java.lang.Object.clone",
       "java.lang.Object.hashCode",
@@ -134,7 +134,7 @@ private[delegate] class Macros(val c: Context) {
       "scala.Any.getClass"
     ).contains(m.fullName)
 
-  private[this] def getTraits(t: Type): Set[ClassSymbol] = {
+  final private[this] def getTraits(t: Type): Set[ClassSymbol] = {
     def loop(stack: List[ClassSymbol], traits: Vector[ClassSymbol] = Vector()): Vector[ClassSymbol] = stack match {
       case x :: xs =>
         loop(xs, if (x.isTrait) traits :+ x else traits)
@@ -143,7 +143,7 @@ private[delegate] class Macros(val c: Context) {
     loop(t.baseClasses.map(_.asClass)).toSet
   }
 
-  private[this] val typeCheckVal: ValDef => (TermName, Type) = {
+  final private[this] val typeCheckVal: ValDef => (TermName, Type) = {
     case ValDef(_, tname, tpt, _) =>
       val tpe = try {
         c.typecheck(tpt.duplicate, c.TYPEmode).tpe
@@ -153,7 +153,7 @@ private[delegate] class Macros(val c: Context) {
       (tname, tpe)
   }
 
-  private[this] def parseTypeString(str: String): Type =
+  final private[this] def parseTypeString(str: String): Type =
     try {
       c.typecheck(c.parse(s"null.asInstanceOf[$str]"), c.TYPEmode).tpe
     } catch {
@@ -161,7 +161,7 @@ private[delegate] class Macros(val c: Context) {
         abort(s"Failed typechecking calculated type $str")
     }
 
-  private[this] def localName(symbol: ClassSymbol): String = {
+  final private[this] def localName(symbol: ClassSymbol): String = {
     val path = "_root_" +: symbol.fullName.split('.')
     path
       .zip(("_root_" +: enclosing.split('.')).padTo(path.length, ""))
@@ -170,12 +170,12 @@ private[delegate] class Macros(val c: Context) {
       .mkString(".")
   }
 
-  private[this] val enclosing = c.enclosingClass match {
+  final private[this] val enclosing = c.enclosingClass match {
     case clazz if clazz.isEmpty => c.enclosingPackage.symbol.fullName
     case clazz                  => clazz.symbol.fullName
   }
 
-  private[this] def overlappingMethods(
+  final private[this] def overlappingMethods(
     from: Type,
     to: Type,
     filter: MethodSymbol => Boolean = _ => true
@@ -194,13 +194,13 @@ private[delegate] class Macros(val c: Context) {
       .toSet
   }
 
-  private[this] def showInfo(s: String) =
+  final private[this] def showInfo(s: String) =
     c.info(c.enclosingPosition, s.split("\n").mkString("\n |---macro info---\n |", "\n |", ""), true)
 
-  private[this] def abort(s: String) =
+  final private[this] def abort(s: String) =
     c.abort(c.enclosingPosition, s)
 
-  private[this] def preconditions(conds: (Boolean, String)*): Unit =
+  final private[this] def preconditions(conds: (Boolean, String)*): Unit =
     conds.foreach {
       case (cond, s) =>
         if (!cond) abort(s)
