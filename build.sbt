@@ -2,11 +2,10 @@ import sbtcrossproject.CrossPlugin.autoImport.crossProject
 import BuildHelper._
 import xerial.sbt.Sonatype._
 
-name := "delegate"
-
 inThisBuild(
   List(
-    organization := "com.schuwalow.delegate",
+    name := "delegate",
+    organization := "com.schuwalow",
     developers := List(
       Developer(
         "mschuwalow",
