@@ -16,9 +16,9 @@ private[delegate] class Macros(val c: Context) {
       bTT.typeSymbol.asClass.isTrait -> s"${bTT.typeSymbol.toString()} needs to be a trait."
     )
 
-    val aName = TermName(c.freshName)
-    val bName = TermName(c.freshName)
-    val resultType = parseTypeString(s"${aTT.toString()} with ${bTT.toString()}")
+    val aName          = TermName(c.freshName)
+    val bName          = TermName(c.freshName)
+    val resultType     = parseTypeString(s"${aTT.toString()} with ${bTT.toString()}")
     val resultTypeName = TypeName(c.freshName)
     q"""
     ${c.parse(s"abstract class $resultTypeName extends $resultType")}
@@ -26,9 +26,9 @@ private[delegate] class Macros(val c: Context) {
       def mix($aName: $aTT, $bName: $bTT): ${resultType} = {
         new ${resultTypeName} {
           ..${(
-              overlappingMethods(aTT, resultType).mapValues((aName, _)) ++
-              overlappingMethods(bTT, resultType).mapValues((bName, _))
-            ).filterNot { case (_, (_, m)) => isObjectMethod(m) }.map {
+      overlappingMethods(aTT, resultType).mapValues((aName, _)) ++
+        overlappingMethods(bTT, resultType).mapValues((bName, _))
+    ).filterNot { case (_, (_, m)) => isObjectMethod(m) }.map {
       case (name, (owner, m)) => delegateMethodDef(name, m, owner)
     }}
         }
@@ -81,9 +81,7 @@ private[delegate] class Macros(val c: Context) {
           getTraits(toType) -- bases.flatMap(b => getTraits(c.typecheck(b, c.TYPEmode).tpe)).toSet
         else Set.empty
       val resultType = parseTypeString(
-        (bases.map(_.toString()) ++ additionalTraits.map{c =>
-          c.fullName
-        }.toList).mkString(" with ")
+        (bases.map(_.toString()) ++ additionalTraits.map(_.fullName).toList).mkString(" with ")
       )
       val extensions = overlappingMethods(toType, resultType, !isBlackListed(_)).filterNot {
         case (n, _) =>
@@ -144,13 +142,14 @@ private[delegate] class Macros(val c: Context) {
     loop(t.baseClasses.map(_.asClass)).toSet
   }
 
-  private[this] val typeCheckVal: ValDef => (TermName, Type) = { case ValDef(_, tname, tpt, _) =>
-    val tpe = try {
-      c.typecheck(tpt.duplicate, c.TYPEmode).tpe
-    } catch {
-      case e: TypecheckException => abort(s"Type ${tpt.toString()} needs a stable reference.")
-    }
-    (tname, tpe)
+  private[this] val typeCheckVal: ValDef => (TermName, Type) = {
+    case ValDef(_, tname, tpt, _) =>
+      val tpe = try {
+        c.typecheck(tpt.duplicate, c.TYPEmode).tpe
+      } catch {
+        case e: TypecheckException => abort(s"Type ${tpt.toString()} needs a stable reference.")
+      }
+      (tname, tpe)
   }
 
   private[this] def parseTypeString(str: String): Type =

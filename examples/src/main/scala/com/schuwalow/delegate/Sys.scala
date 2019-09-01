@@ -18,10 +18,5 @@ object Sys {
     ev.mix(a, new SysInstance(a))
   }
 
-  val env = {
-    object Test {
-      trait A
-    }
-    withSys(new Clock.Live with Blocking.Live with Test.A {})
-  }
+  val env: Clock.Live with Blocking.Live with Sys = withSys[Clock with Blocking](new Clock.Live with Blocking.Live)
 }

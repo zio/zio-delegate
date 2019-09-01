@@ -7,12 +7,6 @@ import sbtcrossproject.CrossPlugin.autoImport.CrossType
 object BuildHelper {
   val testDeps        = Seq("org.scalatest"  %% "scalatest"   % "3.0.8" % "test")
   val compileOnlyDeps = Nil
-  // val compilerPlugins = CrossVersion.partialVersion(scalaVersion.value) match {
-  //   case Some((2, x)) if x >= 13 =>
-  //     Nil
-  //   case _ =>
-  //     Seq(compilerPlugin(("org.scalamacros" % "paradise"  % "2.1.1") cross CrossVersion.full))
-  // }
 
   private val stdOptions = Seq(
     "-deprecation",

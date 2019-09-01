@@ -1,11 +1,22 @@
 # Delegate
 This package defines an annotation and a typeclass that simplify working with mixins and proxies in scala.
 
+## Installation
+Add this dependency to your build.sbt
+```scala
+"com.schuwalow" %% "delegate" % "0.0.1"
+```
+If using a scala version < 2.13 you'll also need to add the macro paradise compiler plugin.
+```scala
+compilerPlugin(("org.scalamacros" % "paradise"  % "2.1.1") cross CrossVersion.full)
+```
+
 ## 1. @delegate annotation
 This annotation can only be used on a  constructur parameter in a class definition.
 This will do a number of things to the resulting class definitions:
 
-* The class will additionally extend any traits extended by the annotated member
+* The class will additionally extend any traits extended by the annotated member.
+  Note: This will probably not work with traits that are not addressable by their fullName. In this case generateTraits should be turned off.
 ```scala
 import com.schuwalow.delegate._
 
