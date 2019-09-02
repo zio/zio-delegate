@@ -10,15 +10,18 @@ private[delegate] class Macros(val c: Context) {
     val aTT = weakTypeOf[A]
     val bTT = weakTypeOf[B]
 
+    val bTTComps = getTypeComponents(bTT) // we need do this because refinements does not count as a trait
     // aT may extends a class bT may not as it will be mixed in
     preconditions(
-      !aTT.typeSymbol.isFinal        -> s"${aTT.typeSymbol.toString()} must be nonfinal class or trait.",
-      bTT.typeSymbol.asClass.isTrait -> s"${bTT.typeSymbol.toString()} needs to be a trait."
+      (!aTT.typeSymbol.isFinal -> s"${aTT.typeSymbol.toString()} must be nonfinal class or trait.")
+        :: bTTComps.map(t => t.typeSymbol.asClass.isTrait -> s"${t.typeSymbol.toString()} needs to be a trait."): _*
     )
 
-    val aName          = TermName(c.freshName("a"))
-    val bName          = TermName(c.freshName("b"))
-    val resultType     = parseTypeString(s"${aTT.toString()} with ${bTT.toString()}")
+    val aName = TermName(c.freshName("a"))
+    val bName = TermName(c.freshName("b"))
+    val resultType = parseTypeString(
+      s"${(getTypeComponents(aTT) ++ bTTComps).map(t => localName(t.typeSymbol.asClass)).mkString(" with ")}"
+    )
     val resultTypeName = TypeName(c.freshName("result"))
     val methods = (
       overlappingMethods(aTT, resultType).map((_, aName)).toMap ++
@@ -164,7 +167,7 @@ private[delegate] class Macros(val c: Context) {
   final private[this] def localName(symbol: ClassSymbol): String = {
     val path = "_root_" +: symbol.fullName.split('.')
     path
-      .zip(("_root_" +: enclosing.split('.')).padTo(path.length, ""))
+      .zip(("_root_" +: enclosing.split('.')).take(path.length - 1).padTo(path.length, ""))
       .dropWhile { case ((l, r)) => l == r }
       .map(_._1)
       .mkString(".")
@@ -206,4 +209,8 @@ private[delegate] class Macros(val c: Context) {
         if (!cond) abort(s)
     }
 
+  final private[this] def getTypeComponents(t: Type): List[Type] = t.dealias match {
+    case RefinedType(parents, _) => parents.flatMap(p => getTypeComponents(p))
+    case t                       => List(t)
+  }
 }

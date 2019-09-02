@@ -42,5 +42,29 @@ class MixSpec extends UnitSpec {
       val mixed = Mix[Foo, Bar].mix(new Foo { def a(a: Int) = 1 }, new Bar { def a(a: String) = "foo" })
       assert(mixed.a(1) == 1 && mixed.a("") == "foo")
     }
+    it("should support type aliases") {
+      trait Foo {
+        def a(a: Int): Int
+      }
+      trait Bar {
+        def a(a: String): String
+      }
+      trait Baz
+      type FooBar = Foo with Bar
+      val mixed = Mix[FooBar, Baz].mix(new Foo with Bar { def a(a: Int) = 2; def a(a: String) = "foo" }, new Baz {})
+      assert(mixed.a(1) == 2 && mixed.a("") == "foo")
+    }
+    it("should support type aliases - 2") {
+      trait Foo {
+        def a(a: Int): Int
+      }
+      trait Bar {
+        def a(a: String): String
+      }
+      trait Baz
+      type FooBar = Foo with Bar
+      val mixed = Mix[Baz, FooBar].mix(new Baz {}, new Foo with Bar { def a(a: Int) = 2; def a(a: String) = "foo" })
+      assert(mixed.a(1) == 2 && mixed.a("") == "foo")
+    }
   }
 }
