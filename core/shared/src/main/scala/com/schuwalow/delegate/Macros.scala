@@ -19,9 +19,11 @@ private[delegate] class Macros(val c: Context) {
 
     val aName = TermName(c.freshName("a"))
     val bName = TermName(c.freshName("b"))
-    val resultType = parseTypeString(
-      s"${(getTypeComponents(aTT) ++ bTTComps).map(t => localName(t.typeSymbol.asClass)).mkString(" with ")}"
-    )
+    val resultType = {
+      val candidate =
+        s"${(getTypeComponents(aTT) ++ bTTComps).map(t => localName(t.typeSymbol.asClass)).mkString(" with ")}"
+      parseTypeString(candidate).fold(e => abort(s"Failed typechecking calculated type $candidate: $e"), identity)
+    }
     val resultTypeName = TypeName(c.freshName("result"))
     val methods = (
       overlappingMethods(aTT, resultType).map((_, aName)).toMap ++
@@ -84,9 +86,10 @@ private[delegate] class Macros(val c: Context) {
         if (args.generateTraits)
           getTraits(toType) -- bases.flatMap(b => getTraits(c.typecheck(b, c.TYPEmode).tpe)).toSet
         else Set.empty
-      val resultType = parseTypeString(
-        (bases.map(_.toString()) ++ additionalTraits.map(localName).toList).mkString(" with ")
-      )
+      val resultType = {
+        val candidate = (bases.map(_.toString()) ++ additionalTraits.map(localName).toList).mkString(" with ")
+        parseTypeString(candidate).fold(e => abort(s"Failed typechecking calculated type $candidate: $e"), identity)
+      }
       val extensions = overlappingMethods(toType, resultType, !isBlackListed(_))
         .filterNot(m => existingMethods.contains(m.name))
         .map(delegateMethodDef(_, toName))
@@ -156,24 +159,24 @@ private[delegate] class Macros(val c: Context) {
       (tname, tpe)
   }
 
-  final private[this] def parseTypeString(str: String): Type =
+  final private[this] def parseTypeString(str: String): Either[TypecheckException, Type] =
     try {
-      c.typecheck(c.parse(s"null.asInstanceOf[$str]"), c.TYPEmode).tpe
+      Right(c.typecheck(c.parse(s"null.asInstanceOf[$str]"), c.TYPEmode).tpe)
     } catch {
-      case _: TypecheckException =>
-        abort(s"Failed typechecking calculated type $str")
+      case e: TypecheckException => Left(e)
     }
 
-  final private[this] def localName(symbol: ClassSymbol): String = {
-    val path = "_root_" +: symbol.fullName.split('.')
-    path
-      .zip(("_root_" +: enclosing.split('.')).take(path.length - 1).padTo(path.length, ""))
-      .dropWhile { case ((l, r)) => l == r }
-      .map(_._1)
-      .mkString(".")
-  }
+  final private[this] def localName(symbol: ClassSymbol): String =
+    parseTypeString(symbol.fullName).map(_ => symbol.fullName).getOrElse {
+      val path = "_root_" +: symbol.fullName.split('.')
+      path
+        .zip(("_root_" +: enclosing.split('.')).take(path.length - 1).padTo(path.length, ""))
+        .dropWhile { case ((l, r)) => l == r }
+        .map(_._1)
+        .mkString(".")
+    }
 
-  final private[this] val enclosing = c.enclosingClass match {
+  final private[this] val enclosing: String = c.enclosingClass match {
     case clazz if clazz.isEmpty => c.enclosingPackage.symbol.fullName
     case clazz                  => clazz.symbol.fullName
   }
