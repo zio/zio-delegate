@@ -133,7 +133,7 @@ object Sys {
 This is heavily inspired by [adamw/scala-macro-aop](https://github.com/adamw/scala-macro-aop) and [b-studios/MixinComposition](https://github.com/b-studios/MixinComposition) . Make sure to check out the projects!
 
 [Link-Circle]: https://circleci.com/gh/mschuwalow/delegate "circleci"
-[Link-Sonatype]: https://oss.sonatype.org/content/repositories/releases/com.schuwalow/delegate_2.12/ "Sonatype Releases"
+[Link-Sonatype]: https://oss.sonatype.org/content/repositories/releases/com/schuwalow/delegate_2.12/ "Sonatype Releases"
 [Link-IIM]: https://isitmaintained.com/project/mschuwalow/delegate "Average time to resolve an issue"
 
 [Badge-Circle]: https://circleci.com/gh/mschuwalow/delegate.svg?style=svg "circleci"
