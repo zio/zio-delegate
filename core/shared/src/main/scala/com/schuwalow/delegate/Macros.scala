@@ -167,7 +167,7 @@ private[delegate] class Macros(val c: Context) {
     }
 
   final private[this] def localName(symbol: ClassSymbol): String =
-    parseTypeString(symbol.fullName).map(_ => symbol.fullName).getOrElse {
+    parseTypeString(symbol.fullName).right.map(_ => symbol.fullName).getOrElse {
       val path = "_root_" +: symbol.fullName.split('.')
       path
         .zip(("_root_" +: enclosing.split('.')).take(path.length - 1).padTo(path.length, ""))
