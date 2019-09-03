@@ -167,14 +167,17 @@ private[delegate] class Macros(val c: Context) {
     }
 
   final private[this] def localName(symbol: ClassSymbol): String =
-    parseTypeString(symbol.fullName).right.map(_ => symbol.fullName).getOrElse {
-      val path = "_root_" +: symbol.fullName.split('.')
-      path
-        .zip(("_root_" +: enclosing.split('.')).take(path.length - 1).padTo(path.length, ""))
-        .dropWhile { case ((l, r)) => l == r }
-        .map(_._1)
-        .mkString(".")
-    }
+    parseTypeString(symbol.fullName).fold(
+      _ => {
+        val path = "_root_" +: symbol.fullName.split('.')
+        path
+          .zip(("_root_" +: enclosing.split('.')).take(path.length - 1).padTo(path.length, ""))
+          .dropWhile { case ((l, r)) => l == r }
+          .map(_._1)
+          .mkString(".")
+      },
+      _ => symbol.fullName
+    )
 
   final private[this] val enclosing: String = c.enclosingClass match {
     case clazz if clazz.isEmpty => c.enclosingPackage.symbol.fullName
