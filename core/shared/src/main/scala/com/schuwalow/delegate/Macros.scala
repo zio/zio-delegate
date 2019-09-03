@@ -13,8 +13,8 @@ private[delegate] class Macros(val c: Context) {
     val bTTComps = getTypeComponents(bTT) // we need do this because refinements does not count as a trait
     // aT may extends a class bT may not as it will be mixed in
     preconditions(
-      (!aTT.typeSymbol.isFinal -> s"${aTT.typeSymbol.toString()} must be nonfinal class or trait.")
-        :: bTTComps.map(t => t.typeSymbol.asClass.isTrait -> s"${t.typeSymbol.toString()} needs to be a trait."): _*
+      (!aTT.typeSymbol.isFinal -> s"${aTT.typeSymbol.toString()} must be nonfinal class or trait.") ::
+        bTTComps.map(t => t.typeSymbol.asClass.isTrait -> s"${t.typeSymbol.toString()} needs to be a trait."): _*
     )
 
     val aName = TermName(c.freshName("a"))
@@ -24,19 +24,21 @@ private[delegate] class Macros(val c: Context) {
         s"${(getTypeComponents(aTT) ++ bTTComps).map(t => localName(t.typeSymbol.asClass)).mkString(" with ")}"
       parseTypeString(candidate).fold(e => abort(s"Failed typechecking calculated type $candidate: $e"), identity)
     }
-    val resultTypeName = TypeName(c.freshName("result"))
-    val methods = (
-      overlappingMethods(aTT, resultType).map((_, aName)).toMap ++
+    val body = {
+      val methods = overlappingMethods(aTT, resultType).map((_, aName)).toMap ++
         overlappingMethods(bTT, resultType).map((_, bName)).toMap
-    ).toMap.filterNot { case (m, _) => isObjectMethod(m) }.map {
-      case (m, owner) => delegateMethodDef(m, owner)
+
+      methods.filterNot { case (m, _) => isObjectMethod(m) }.map {
+        case (m, owner) => delegateMethodDef(m, owner)
+      }
     }
+    val resultTypeName = TypeName(c.freshName("result"))
     q"""
     ${c.parse(s"abstract class $resultTypeName extends $resultType")}
     new Mix[$aTT, $bTT] {
       def mix($aName: $aTT, $bName: $bTT): ${resultType} = {
         new ${resultTypeName} {
-          ..$methods
+          ..$body
         }
       }
     }
@@ -82,6 +84,7 @@ private[delegate] class Macros(val c: Context) {
         .toSet
 
       val (toName, toType) = typeCheckVal(delegateTo)
+        .fold(e => abort(s"Failed typechecking annotated member. Is it defined in local scope?: $e"), identity)
       val additionalTraits =
         if (args.generateTraits)
           getTraits(toType) -- bases.flatMap(b => getTraits(c.typecheck(b, c.TYPEmode).tpe)).toSet
@@ -149,14 +152,14 @@ private[delegate] class Macros(val c: Context) {
     loop(t.baseClasses.map(_.asClass)).toSet
   }
 
-  final private[this] val typeCheckVal: ValDef => (TermName, Type) = {
+  final private[this] val typeCheckVal: ValDef => Either[TypecheckException, (TermName, Type)] = {
     case ValDef(_, tname, tpt, _) =>
       val tpe = try {
-        c.typecheck(tpt.duplicate, c.TYPEmode).tpe
+        Right(c.typecheck(tpt.duplicate, c.TYPEmode).tpe)
       } catch {
-        case e: TypecheckException => abort(s"Type ${tpt.toString()} needs a stable reference.")
+        case e: TypecheckException => Left(e)
       }
-      (tname, tpe)
+      tpe.right.map((tname, _))
   }
 
   final private[this] def parseTypeString(str: String): Either[TypecheckException, Type] =
