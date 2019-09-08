@@ -7,7 +7,7 @@ This package defines an annotation and a typeclass that simplify working with mi
 ## Installation
 Add this dependency to your build.sbt
 ```scala
-"com.schuwalow" %% "delegate" % "0.0.1"
+"dev.zio" %% "delegate" % "0.0.1"
 ```
 If using a scala version < 2.13 you'll also need to add the macro paradise compiler plugin.
 ```scala
@@ -24,7 +24,7 @@ This will do a number of things to the resulting class definitions:
 
 * The class will additionally extend any traits extended by the annotated member.
 ```scala
-import com.schuwalow.delegate._
+import zio.delegate._
 
 trait Foo {
   def foo: Int = 4
@@ -37,7 +37,7 @@ val b: Foo = new Bar(FooImpl)
 
 * Any methods on the resulting type of the defined class that are also defined on the annotated member will be forwarded to the member unless a definition exists in the body of the class.
 ```scala
-import com.schuwalow.delegate._
+import zio.delegate._
 
 trait Foo {
   def foo: Int
@@ -109,7 +109,7 @@ Definitions in the second type will override implementations in the first type.
 One of the primary motivations for writing this library was more comfortable incremental building
 of ZIO environment cakes. A possible way of doing this is:
 ```scala
-import com.schuwalow.delegate._
+import zio.delegate._
 import zio.blocking.Blocking
 import zio.clock.Clock
 
@@ -130,13 +130,13 @@ object Sys {
 }
 ```
 ## Remarks
-This is heavily inspired by [adamw/scala-macro-aop](https://github.com/adamw/scala-macro-aop) and [b-studios/MixinComposition](https://github.com/b-studios/MixinComposition) . Make sure to check out the projects!
+This is heavily inspired by [adamw/scala-macro-aop](https://github.com/adamw/scala-macro-aop) and [b-studios/MixinComposition](https://github.com/b-studios/MixinComposition). Make sure to check out the projects!
 
-[Link-Circle]: https://circleci.com/gh/mschuwalow/delegate "circleci"
+[Link-Circle]: https://circleci.com/gh/zio/delegate "circleci"
 [Link-Sonatype]: https://oss.sonatype.org/content/repositories/releases/com/schuwalow/delegate_2.12/ "Sonatype Releases"
-[Link-IIM]: https://isitmaintained.com/project/mschuwalow/delegate "Average time to resolve an issue"
+[Link-IIM]: https://isitmaintained.com/project/zio/delegate "Average time to resolve an issue"
 
-[Badge-Circle]: https://circleci.com/gh/mschuwalow/delegate.svg?style=svg "circleci"
+[Badge-Circle]: https://circleci.com/gh/zio/delegate.svg?style=svg "circleci"
 [Badge-Sonatype]: https://img.shields.io/nexus/r/https/oss.sonatype.org/com.schuwalow/delegate_2.12.svg "Sonatype Releases"
-[Badge-IIM]: https://isitmaintained.com/badge/resolution/mschuwalow/delegate.svg "Average time to resolve an issue"
+[Badge-IIM]: https://isitmaintained.com/badge/resolution/zio/delegate.svg "Average time to resolve an issue"
 

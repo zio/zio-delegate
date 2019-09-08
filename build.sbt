@@ -5,8 +5,8 @@ import xerial.sbt.Sonatype._
 inThisBuild(
   List(
     name := "delegate",
-    organization := "com.schuwalow",
-    homepage := Some(url("https://github.com/mschuwalow/delegate")),
+    organization := "dev.zio",
+    homepage := Some(url("https://github.com/zio/delegate")),
     developers := List(
       Developer(
         "mschuwalow",
@@ -18,7 +18,7 @@ inThisBuild(
     scmInfo := Some(
       ScmInfo(
         homepage.value.get,
-        "scm:git:git@github.com:mschuwalow/delegate.git"
+        "scm:git:git@github.com:zio/delegate.git"
       )
     ),
     licenses := Seq("Apache-2.0" -> url(s"${scmInfo.value.map(_.browseUrl).get}/blob/v${version.value}/LICENSE")),

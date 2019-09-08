@@ -1,4 +1,4 @@
-package com.schuwalow.delegate
+package zio.delegate
 
 class MixSpec extends UnitSpec {
   describe("Mix") {

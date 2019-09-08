@@ -1,4 +1,4 @@
-package com.schuwalow.delegate
+package zio.delegate
 
 import scala.annotation.StaticAnnotation
 import scala.annotation.compileTimeOnly

@@ -1,4 +1,4 @@
-package com.schuwalow.delegate
+package zio.delegate
 
 class DelegateSpec extends UnitSpec {
 

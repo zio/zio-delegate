@@ -1,4 +1,4 @@
-package com.schuwalow.delegate
+package zio.delegate
 
 import scala.reflect.macros.blackbox.Context
 import scala.reflect.macros.TypecheckException

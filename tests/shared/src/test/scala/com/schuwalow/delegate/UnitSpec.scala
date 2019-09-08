@@ -1,4 +1,4 @@
-package com.schuwalow.delegate
+package zio.delegate
 import org.scalatest.FunSpec
 import org.scalatest.Matchers
 import org.scalatest.OptionValues

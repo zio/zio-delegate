@@ -1,4 +1,4 @@
-package com.schuwalow.delegate
+package zio.delegate
 
 import zio.blocking.Blocking
 import zio.clock.Clock
