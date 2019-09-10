@@ -4,9 +4,9 @@ import xerial.sbt.Sonatype._
 
 inThisBuild(
   List(
-    name := "delegate",
+    name := "zio-delegate",
     organization := "dev.zio",
-    homepage := Some(url("https://github.com/zio/delegate")),
+    homepage := Some(url("https://github.com/zio/zio-delegate")),
     developers := List(
       Developer(
         "mschuwalow",
@@ -18,7 +18,7 @@ inThisBuild(
     scmInfo := Some(
       ScmInfo(
         homepage.value.get,
-        "scm:git:git@github.com:zio/delegate.git"
+        "scm:git:git@github.com:zio/zio-delegate.git"
       )
     ),
     licenses := Seq("Apache-2.0" -> url(s"${scmInfo.value.map(_.browseUrl).get}/blob/v${version.value}/LICENSE")),
@@ -56,7 +56,7 @@ lazy val root = project
 
 lazy val core = crossProject(JSPlatform, JVMPlatform)
   .in(file("core"))
-  .settings(stdSettings("delegate"))
+  .settings(stdSettings("zio-delegate"))
   .settings(
     scalacOptions --= Seq("-deprecation", "-Xfatal-warnings")
   )
@@ -70,7 +70,7 @@ lazy val core = crossProject(JSPlatform, JVMPlatform)
 lazy val coreTests = crossProject(JSPlatform, JVMPlatform)
   .in(file("tests"))
   .dependsOn(core)
-  .settings(stdSettings("delegate-tests"))
+  .settings(stdSettings("zio-delegate-tests"))
   .settings(
     skip in publish := true
   )
@@ -78,7 +78,7 @@ lazy val coreTests = crossProject(JSPlatform, JVMPlatform)
 lazy val examples = crossProject(JSPlatform, JVMPlatform)
   .in(file("examples"))
   .dependsOn(core)
-  .settings(stdSettings("delegate-examples"))
+  .settings(stdSettings("zio-delegate-examples"))
   .settings(
     skip in publish := true,
     libraryDependencies ++= Seq(

@@ -1,13 +1,13 @@
 | CI                                  | Sonatype                                      | Issue Resolution                |
 | ---                                 | ---                                           | ---                             |
 | [![CI][Badge-Circle]][Link-Circle]  | [![Sonatype][Badge-Sonatype]][Link-Sonatype]  | [![Issue][Badge-IIM]][Link-IIM] |
-# Delegate
+# Zio-Delegate
 This package defines an annotation and a typeclass that simplify working with mixins and proxies in scala.
 
 ## Installation
 Add this dependency to your build.sbt
 ```scala
-"dev.zio" %% "delegate" % "0.0.1"
+"dev.zio" %% "zio-delegate" % "0.0.3"
 ```
 If using a scala version < 2.13 you'll also need to add the macro paradise compiler plugin.
 ```scala
@@ -132,11 +132,11 @@ object Sys {
 ## Remarks
 This is heavily inspired by [adamw/scala-macro-aop](https://github.com/adamw/scala-macro-aop) and [b-studios/MixinComposition](https://github.com/b-studios/MixinComposition). Make sure to check out the projects!
 
-[Link-Circle]: https://circleci.com/gh/zio/delegate "circleci"
-[Link-Sonatype]: https://oss.sonatype.org/content/repositories/releases/dev/zio/delegate_2.12/ "Sonatype Releases"
-[Link-IIM]: https://isitmaintained.com/project/zio/delegate "Average time to resolve an issue"
+[Link-Circle]: https://circleci.com/gh/zio/zio-delegate "circleci"
+[Link-Sonatype]: https://oss.sonatype.org/content/repositories/releases/dev/zio/zio-delegate_2.12/ "Sonatype Releases"
+[Link-IIM]: https://isitmaintained.com/project/zio/zio-delegate "Average time to resolve an issue"
 
-[Badge-Circle]: https://circleci.com/gh/zio/delegate.svg?style=svg "circleci"
-[Badge-Sonatype]: https://img.shields.io/nexus/r/https/oss.sonatype.org/dev.zio/delegate_2.12.svg "Sonatype Releases"
-[Badge-IIM]: https://isitmaintained.com/badge/resolution/zio/delegate.svg "Average time to resolve an issue"
+[Badge-Circle]: https://circleci.com/gh/zio/zio-delegate.svg?style=svg "circleci"
+[Badge-Sonatype]: https://img.shields.io/nexus/r/https/oss.sonatype.org/dev.zio/zio-delegate_2.12.svg "Sonatype Releases"
+[Badge-IIM]: https://isitmaintained.com/badge/resolution/zio/zio-delegate.svg "Average time to resolve an issue"
 
