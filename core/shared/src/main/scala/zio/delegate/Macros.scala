@@ -21,12 +21,39 @@ import scala.reflect.macros.TypecheckException
 private[delegate] class Macros(val c: Context) {
   import c.universe._
 
+  final case class MethodSummary(
+    method: MethodSymbol,
+    methodType: Type
+  ) {
+
+    def returnType: Type = methodType match {
+      case m: MethodType        => m.resultType
+      case m: NullaryMethodType => m.resultType
+      case _                    => abort("not a method")
+    }
+
+    def typeParams: List[Symbol] = methodType match {
+      case m: MethodType        => m.typeParams
+      case m: NullaryMethodType => m.typeParams
+      case _                    => abort("not a method")
+    }
+
+    def paramLists: List[List[Symbol]] = methodType match {
+      case m: MethodType        => m.paramLists
+      case m: NullaryMethodType => m.paramLists
+      case _                    => abort("not a method")
+    }
+  }
+
   def mixImpl[A: WeakTypeTag, B: WeakTypeTag]: c.Tree = {
     val aTT = weakTypeOf[A]
     val bTT = weakTypeOf[B]
 
     val bTTComps = getTypeComponents(bTT) // we need do this because refinements does not count as a trait
-    // aT may extends a class bT may not as it will be mixed in
+    val aTTComps = getTypeComponents(aTT)
+
+    // aT may extend a class
+    //bT may not as it will be mixed in
     preconditions(
       (!aTT.typeSymbol.isFinal -> s"${aTT.typeSymbol.toString()} must be nonfinal class or trait.") ::
         bTTComps.map(t => t.typeSymbol.asClass.isTrait -> s"${t.typeSymbol.toString()} needs to be a trait."): _*
@@ -35,15 +62,21 @@ private[delegate] class Macros(val c: Context) {
     val aName = TermName(c.freshName("a"))
     val bName = TermName(c.freshName("b"))
     val resultType = {
-      val candidate =
-        s"${(getTypeComponents(aTT) ++ bTTComps).map(t => localName(t.typeSymbol.asClass)).mkString(" with ")}"
+      val components = (aTTComps ++ bTTComps).distinct
+      val candidate = components.map { t =>
+        val dealiased = t.dealias
+        val name      = localName(dealiased.typeSymbol.asClass)
+        val args      = dealiased.typeArgs
+        if (args.isEmpty) name
+        else name ++ args.mkString("[", ", ", "]")
+      }.mkString(" with ")
       parseTypeString(candidate).fold(e => abort(s"Failed typechecking calculated type $candidate: $e"), identity)
     }
     val body = {
       val methods = overlappingMethods(aTT, resultType).map((_, aName)).toMap ++
         overlappingMethods(bTT, resultType).map((_, bName)).toMap
 
-      methods.filterNot { case (m, _) => isObjectMethod(m) }.map {
+      methods.filterNot { case (m, _) => isObjectMethod(m.method) }.map {
         case (m, owner) => delegateMethodDef(m, owner)
       }
     }
@@ -100,16 +133,19 @@ private[delegate] class Macros(val c: Context) {
 
       val (toName, toType) = typeCheckVal(delegateTo)
         .fold(e => abort(s"Failed typechecking annotated member. Is it defined in local scope?: $e"), identity)
+
       val additionalTraits =
         if (args.generateTraits)
           getTraits(toType) -- bases.flatMap(b => getTraits(c.typecheck(b, c.TYPEmode).tpe)).toSet
         else Set.empty
+
       val resultType = {
         val candidate = (bases.map(_.toString()) ++ additionalTraits.map(localName).toList).mkString(" with ")
         parseTypeString(candidate).fold(e => abort(s"Failed typechecking calculated type $candidate: $e"), identity)
       }
+
       val extensions = overlappingMethods(toType, resultType, !isBlackListed(_))
-        .filterNot(m => existingMethods.contains(m.name))
+        .filterNot(m => existingMethods.contains(m.method.name))
         .map(delegateMethodDef(_, toName))
 
       val resultTypeName = TypeName(c.freshName)
@@ -128,14 +164,12 @@ private[delegate] class Macros(val c: Context) {
     }
   }
 
-  final private[this] def delegateMethodDef(m: MethodSymbol, to: TermName) = {
-    val name  = m.name
+  final private[this] def delegateMethodDef(m: MethodSummary, to: TermName) = {
+    val name  = m.method.name
     val rType = m.returnType
-    val mods =
-      if (!m.isAbstract) Modifiers(Flag.OVERRIDE)
-      else Modifiers()
+    val mods  = if (!m.method.isAbstract) Modifiers(Flag.OVERRIDE) else Modifiers()
 
-    if (m.paramss.isEmpty) {
+    if (m.method.paramss.isEmpty) {
       q"$mods val $name: $rType = $to.$name"
     } else {
       val typeParams = m.typeParams.map(internal.typeDef(_))
@@ -203,21 +237,17 @@ private[delegate] class Macros(val c: Context) {
   }
 
   final private[this] def overlappingMethods(
-    from: Type,
-    to: Type,
+    interface: Type,
+    impl: Type,
     filter: MethodSymbol => Boolean = _ => true
-  ): Set[MethodSymbol] = {
+  ): Set[MethodSummary] = {
     def isVisible(m: MethodSymbol) =
       m.isPublic || enclosing.startsWith(m.privateWithin.fullName)
 
-    to.baseClasses
-      .map(_.asClass.selfType)
-      .filter(from <:< _)
-      .flatMap { s =>
-        s.members
-          .flatMap(m => to.member(m.name).alternatives.map(_.asMethod).find(_ == m))
-          .filter(m => !m.isConstructor && !m.isFinal && isVisible(m) && filter(m))
-      }
+    interface.members
+      .flatMap(m => impl.member(m.name).alternatives.map(_.asMethod).find(_ == m))
+      .filter(m => !m.isConstructor && !m.isFinal && isVisible(m) && filter(m))
+      .map(m => MethodSummary(m, m.typeSignatureIn(interface)))
       .toSet
   }
 

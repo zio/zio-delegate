@@ -81,5 +81,26 @@ class MixSpec extends UnitSpec {
       val mixed = Mix[Baz, FooBar].mix(new Baz {}, new Foo with Bar { def a(a: Int) = 2; def a(a: String) = "foo" })
       assert(mixed.a(1) == 2 && mixed.a("") == "foo")
     }
+    it("should support type arguments") {
+      trait Foo[A] {
+        def a(a: Int): A
+      }
+      trait Bar {
+        def b(a: String): String
+      }
+      trait Baz
+      type FooBar = Foo[Int] with Bar
+      val mixed =
+        Mix[Baz, FooBar].mix(new Baz {}, new Foo[Int] with Bar { def a(a: Int) = 2; def b(a: String) = "foo" })
+      assert(mixed.a(1) == 2 && mixed.b("") == "foo")
+    }
+    it("should allow overriding members") {
+      trait Foo {
+        def a: Int = 1
+      }
+      trait Bar
+      val mixed = Mix[Foo with Bar, Foo].mix(new Foo with Bar {}, new Foo { override def a = 2 })
+      assert(mixed.a == 2)
+    }
   }
 }
