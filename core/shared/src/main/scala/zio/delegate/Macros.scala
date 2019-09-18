@@ -61,17 +61,26 @@ private[delegate] class Macros(val c: Context) {
 
     val aName = TermName(c.freshName("a"))
     val bName = TermName(c.freshName("b"))
-    val resultType = {
-      val components = (aTTComps ++ bTTComps).distinct
-      val candidate = components.map { t =>
-        val dealiased = t.dealias
-        val name      = localName(dealiased.typeSymbol.asClass)
-        val args      = dealiased.typeArgs
-        if (args.isEmpty) name
-        else name ++ args.mkString("[", ", ", "]")
-      }.mkString(" with ")
-      parseTypeString(candidate).fold(e => abort(s"Failed typechecking calculated type $candidate: $e"), identity)
-    }
+    val (resultTypeName, resultTypeTree) = (aTTComps ++ bTTComps).distinct
+      .foldLeft[Option[(TypeName, Tree)]](None) {
+        case (Some((n, acc)), t) =>
+          val symbol = TypeName(c.freshName("tmp"))
+          val next   = q"""
+          ..$acc
+          trait $symbol extends $n with $t
+        """
+          Some((symbol, next))
+        case (_, t) =>
+          val symbol = TypeName(c.freshName("tmp"))
+          val next   = q"trait $symbol extends $t"
+          Some((symbol, next))
+      }
+      .get
+    val resultType = typeCheckTree(q"""
+      ..${resultTypeTree}
+      null.asInstanceOf[${resultTypeName}]
+    """).fold(e => abort(e.toString), identity)
+
     val body = {
       val methods = overlappingMethods(aTT, resultType).map((_, aName)).toMap ++
         overlappingMethods(bTT, resultType).map((_, bName)).toMap
@@ -80,11 +89,10 @@ private[delegate] class Macros(val c: Context) {
         case (m, owner) => delegateMethodDef(m, owner)
       }
     }
-    val resultTypeName = TypeName(c.freshName("result"))
     q"""
-    ${c.parse(s"abstract class $resultTypeName extends $resultType")}
-    new Mix[$aTT, $bTT] {
-      def mix($aName: $aTT, $bName: $bTT): ${resultType} = {
+    ..${resultTypeTree}
+    new _root_.zio.delegate.Mix[$aTT, $bTT] {
+      def mix($aName: $aTT, $bName: $bTT) = {
         new ${resultTypeName} {
           ..$body
         }
@@ -131,6 +139,7 @@ private[delegate] class Macros(val c: Context) {
         )
         .toSet
 
+      // TODO: get traits even if this takes type parameters
       val (toName, toType) = typeCheckVal(delegateTo)
         .fold(e => abort(s"Failed typechecking annotated member. Is it defined in local scope?: $e"), identity)
 
@@ -139,24 +148,30 @@ private[delegate] class Macros(val c: Context) {
           getTraits(toType) -- bases.flatMap(b => getTraits(c.typecheck(b, c.TYPEmode).tpe)).toSet
         else Set.empty
 
-      val resultType = {
-        val candidate = (bases.map(_.toString()) ++ additionalTraits.map(localName).toList).mkString(" with ")
-        parseTypeString(candidate).fold(e => abort(s"Failed typechecking calculated type $candidate: $e"), identity)
+      val (resultType, resultTypeName, resultTypeTree) = {
+        val symbol = TypeName(c.freshName("tmp"))
+        val tree   = q"""abstract class $symbol extends ..${bases} with ..${additionalTraits.map(_.toType).toList}"""
+        (typeCheckTree(q"""
+          ..$tree
+          null.asInstanceOf[$symbol]
+          """).fold(e => abort(e.toString), identity), symbol, tree)
       }
 
       val extensions = overlappingMethods(toType, resultType, !isBlackListed(_))
         .filterNot(m => existingMethods.contains(m.method.name))
         .map(delegateMethodDef(_, toName))
 
-      val resultTypeName = TypeName(c.freshName)
       q"""
-      ${c.parse(s"abstract class $resultTypeName extends $resultType")}
+      ..$resultTypeTree
       $mods class $className(..$fields) extends $resultTypeName { ..${body ++ extensions} }
       """
     }
 
     annottees.map(_.tree) match {
       case (valDecl: ValDef) :: (classDecl: ClassDef) :: Nil =>
+        preconditions(
+          (classDecl.tparams.isEmpty) -> "Classes with generic parameters are not currently supported."
+        )
         val modified = modifiedClass(classDecl, valDecl)
         if (args.verbose) showInfo(modified.toString())
         modified
@@ -195,7 +210,7 @@ private[delegate] class Macros(val c: Context) {
   final private[this] def getTraits(t: Type): Set[ClassSymbol] = {
     def loop(stack: List[ClassSymbol], traits: Vector[ClassSymbol] = Vector()): Vector[ClassSymbol] = stack match {
       case x :: xs =>
-        loop(xs, if (x.isTrait) traits :+ x else traits)
+        loop(xs, if (x.isTrait && t <:< x.toType) traits :+ x else traits)
       case Nil => traits
     }
     loop(t.baseClasses.map(_.asClass)).toSet
@@ -203,33 +218,15 @@ private[delegate] class Macros(val c: Context) {
 
   final private[this] val typeCheckVal: ValDef => Either[TypecheckException, (TermName, Type)] = {
     case ValDef(_, tname, tpt, _) =>
-      val tpe = try {
-        Right(c.typecheck(tpt.duplicate, c.TYPEmode).tpe)
-      } catch {
-        case e: TypecheckException => Left(e)
-      }
-      tpe.right.map((tname, _))
+      typeCheckTree(tpt).right.map((tname, _))
   }
 
-  final private[this] def parseTypeString(str: String): Either[TypecheckException, Type] =
+  final private[this] def typeCheckTree(tree: Tree): Either[TypecheckException, Type] =
     try {
-      Right(c.typecheck(c.parse(s"null.asInstanceOf[$str]"), c.TYPEmode).tpe)
+      Right(c.typecheck(tree, c.TYPEmode).tpe)
     } catch {
       case e: TypecheckException => Left(e)
     }
-
-  final private[this] def localName(symbol: ClassSymbol): String =
-    parseTypeString(symbol.fullName).fold(
-      _ => {
-        val path = "_root_" +: symbol.fullName.split('.')
-        path
-          .zip(("_root_" +: enclosing.split('.')).take(path.length - 1).padTo(path.length, ""))
-          .dropWhile { case ((l, r)) => l == r }
-          .map(_._1)
-          .mkString(".")
-      },
-      _ => symbol.fullName
-    )
 
   final private[this] val enclosing: String = c.enclosingClass match {
     case clazz if clazz.isEmpty => c.enclosingPackage.symbol.fullName
