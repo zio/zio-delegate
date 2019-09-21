@@ -147,15 +147,17 @@ private[delegate] class Macros(val c: Context) {
       val additionalTraits =
         if (args.generateTraits) {
           val baseTraitsOnly = basesTypes.flatMap(getTraits(_).map(_.toType)).toList
-          getTraits(toType).map(_.toType).filterNot {
-            tpe =>
+          getTraits(toType)
+            .map(_.toType)
+            .filterNot { tpe =>
               baseTraitsOnly.exists(tpe =:= _)
-          }.toList
-        }
-        else Nil
+            }
+            .toList
+        } else Nil
 
       val (resultType, resultTypeName) = {
-        (internal.refinedType(basesTypes ++ additionalTraits, internal.newScopeWith()), basesTypes ++ additionalTraits)
+        val resultTypes = basesTypes ++ additionalTraits
+        (internal.refinedType(resultTypes, internal.newScopeWith()), resultTypes)
       }
 
       val extensions = overlappingMethods(toType, resultType, !isBlackListed(_))
