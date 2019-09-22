@@ -7,7 +7,7 @@ This package defines an annotation and a typeclass that simplify working with mi
 ## Installation
 Add this dependency to your build.sbt
 ```scala
-"dev.zio" %% "zio-delegate" % "0.0.3"
+"dev.zio" %% "zio-delegate" % "0.0.5"
 ```
 If using a scala version < 2.13 you'll also need to add the macro paradise compiler plugin.
 ```scala
