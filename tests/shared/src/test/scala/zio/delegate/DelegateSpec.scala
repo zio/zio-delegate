@@ -64,7 +64,7 @@ class DelegateSpec extends UnitSpec {
         def a: Int
       }
       {
-        class Bar(@delegate(verbose = true) foo: Foo) extends Foo
+        class Bar(@delegate foo: Foo) extends Foo
         assert((new Bar(new Foo { def a = 3 })).a == 3)
       }
     }
