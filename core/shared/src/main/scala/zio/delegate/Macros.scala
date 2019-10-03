@@ -143,18 +143,21 @@ private[delegate] class Macros(val c: Context) {
       val (toName, toType) = typeCheckVal(delegateTo)
         .fold(e => abort(s"Failed typechecking annotated member. Is it defined in local scope?: $e"), identity)
 
+      val basesTypes = bases.map(b => c.typecheck(b, c.TYPEmode).tpe)
       val additionalTraits =
-        if (args.generateTraits)
-          getTraits(toType) -- bases.flatMap(b => getTraits(c.typecheck(b, c.TYPEmode).tpe)).toSet
-        else Set.empty
+        if (args.generateTraits) {
+          val baseTraitsOnly = basesTypes.flatMap(getTraits(_).map(_.toType)).toList
+          getTraits(toType)
+            .map(_.toType)
+            .filterNot { tpe =>
+              baseTraitsOnly.exists(tpe =:= _)
+            }
+            .toList
+        } else Nil
 
-      val (resultType, resultTypeName, resultTypeTree) = {
-        val symbol = TypeName(c.freshName("tmp"))
-        val tree   = q"""abstract class $symbol extends ..${bases} with ..${additionalTraits.map(_.toType).toList}"""
-        (typeCheckTree(q"""
-          ..$tree
-          null.asInstanceOf[$symbol]
-          """).fold(e => abort(e.toString), identity), symbol, tree)
+      val (resultType, resultTypeName) = {
+        val resultTypes = basesTypes ++ additionalTraits
+        (internal.refinedType(resultTypes, internal.newScopeWith()), resultTypes)
       }
 
       val extensions = overlappingMethods(toType, resultType, !isBlackListed(_))
@@ -162,8 +165,7 @@ private[delegate] class Macros(val c: Context) {
         .map(delegateMethodDef(_, toName))
 
       q"""
-      ..$resultTypeTree
-      $mods class $className(..$fields) extends $resultTypeName { ..${body ++ extensions} }
+      $mods class $className(..$fields) extends ..$resultTypeName { ..${body ++ extensions} }
       """
     }
 

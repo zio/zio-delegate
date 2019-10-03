@@ -48,17 +48,17 @@ class DelegateSpec extends UnitSpec {
       }
     }
     // TODO: this currently causes compiler stackoverflow :(
-    // it("should handle locally visible symbols") {
-    //   object Test {
-    //     trait Foo {
-    //       final def a: Int = 3
-    //     }
-    //   }
-    //   {
-    //     class Bar(@delegate foo: Test.Foo)
-    //     assert((new Bar(new Test.Foo {})).a == 3)
-    //   }
-    // }
+//     it("should handle locally visible symbols") {
+//       object Test {
+//         trait Foo {
+//           final def a: Int = 3
+//         }
+//       }
+//       {
+//         class Bar(@delegate(verbose = true) foo: Test.Foo)
+//         assert((new Bar(new Test.Foo {})).a == 3)
+//       }
+//     }
     it("should work with abstract classes when explicitly extending") {
       abstract class Foo {
         def a: Int
