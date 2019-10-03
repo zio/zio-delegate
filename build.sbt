@@ -32,11 +32,11 @@ addCommandAlias("fmt", "all scalafmtSbt scalafmt test:scalafmt")
 addCommandAlias("check", "all scalafmtSbtCheck scalafmtCheck test:scalafmtCheck")
 addCommandAlias(
   "testJVM",
-  ";coreTestsJVM/test;examplesJVM/compile"
+  "coreTestsJVM/test; examplesJVM/compile"
 )
 addCommandAlias(
   "testJS",
-  ";coreTestsJS/test;examplesJS/compile"
+  "coreTestsJS/test; examplesJS/compile"
 )
 
 lazy val root = project
