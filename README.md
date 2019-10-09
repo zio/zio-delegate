@@ -2,6 +2,9 @@
 | ---                                 | ---                                           | ---                             |
 | [![CI][Badge-Circle]][Link-Circle]  | [![Sonatype][Badge-Sonatype]][Link-Sonatype]  | [![Issue][Badge-IIM]][Link-IIM] |
 # Zio-Delegate
+---
+## Zio-delegate has been merged into [Zio-Macros](https://github.com/zio/zio-macros). This repo will no longer be maintained.
+---
 This package defines an annotation and a typeclass that simplify working with mixins and proxies in scala.
 
 ## Installation
